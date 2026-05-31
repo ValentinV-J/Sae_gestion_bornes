@@ -1,12 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    Autorise les requêtes HTTP en clair vers des serveurs locaux (dev/test).
-    En production, utiliser uniquement HTTPS.
--->
+<!-- Configuration release par défaut: trafic HTTP en clair interdit. -->
 <network-security-config>
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">10.0.2.2</domain>    <!-- émulateur Android → localhost -->
-        <domain includeSubdomains="true">192.168.0.0</domain> <!-- réseau local typique -->
-        <domain includeSubdomains="true">localhost</domain>
-    </domain-config>
+    <base-config cleartextTrafficPermitted="false" />
 </network-security-config>
