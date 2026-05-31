@@ -1,0 +1,41 @@
+# CentralServer .gitignore (Java / Maven multi-module)
+
+# IntelliJ
+/.idea/
+*.iml
+*.iws
+
+# Maven
+/target/
+**/target/
+.settings/
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.*
+
+# Build artifacts
+*.jar
+*.war
+*.ear
+
+# Misc
+*.class
+
+# Keep important project files tracked
+!pom.xml
+
+# End of CentralServer/.gitignore
