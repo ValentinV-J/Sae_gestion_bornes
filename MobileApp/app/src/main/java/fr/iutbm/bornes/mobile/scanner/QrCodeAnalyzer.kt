@@ -7,6 +7,7 @@ import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * CameraX ImageAnalysis.Analyzer using Google ML Kit Barcode Scanning.
@@ -21,7 +22,7 @@ class QrCodeAnalyzer(
     private val onQrCodeDetected: (String) -> Unit
 ) : ImageAnalysis.Analyzer {
 
-    private var processing = false
+    private val processing = AtomicBoolean(false)
 
     private val scanner = BarcodeScanning.getClient(
         BarcodeScannerOptions.Builder()
@@ -31,7 +32,7 @@ class QrCodeAnalyzer(
 
     @ExperimentalGetImage
     override fun analyze(imageProxy: ImageProxy) {
-        if (processing) {
+        if (processing.get()) {
             imageProxy.close()
             return
         }
@@ -47,8 +48,7 @@ class QrCodeAnalyzer(
             .addOnSuccessListener { barcodes ->
                 for (barcode in barcodes) {
                     val raw = barcode.rawValue
-                    if (!raw.isNullOrBlank() && !processing) {
-                        processing = true
+                    if (!raw.isNullOrBlank() && processing.compareAndSet(false, true)) {
                         onQrCodeDetected(raw)
                         break
                     }
@@ -64,6 +64,6 @@ class QrCodeAnalyzer(
 
     /** Réinitialise le verrou pour permettre un nouveau scan (ex: après erreur). */
     fun reset() {
-        processing = false
+        processing.set(false)
     }
 }

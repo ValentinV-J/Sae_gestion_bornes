@@ -36,7 +36,7 @@ object ApiClient {
             retrofit = buildRetrofit(baseUrl)
             currentBaseUrl = baseUrl
         }
-        return retrofit!!.create(ApiService::class.java)
+        return checkNotNull(retrofit).create(ApiService::class.java)
     }
 
     fun getSavedUrl(context: Context): String {
