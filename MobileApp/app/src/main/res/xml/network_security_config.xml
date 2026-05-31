@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     Autorise les requêtes HTTP en clair vers des serveurs locaux (dev/test).
-    En production, utiliser uniquement HTTPS.
+    ⚠️ Fichier à utiliser uniquement en debug/local : en production, utiliser uniquement HTTPS
+    et une configuration réseau dédiée à la release.
 -->
 <network-security-config>
     <domain-config cleartextTrafficPermitted="true">
