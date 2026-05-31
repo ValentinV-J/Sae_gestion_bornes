@@ -25,6 +25,9 @@ local.properties
 captures/
 .externalNativeBuild/
 .cxx/
+/proguard/
+*.apk
+*.ap_
 
 # Android signing files
 *.jks
