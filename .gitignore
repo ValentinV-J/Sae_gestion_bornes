@@ -1,0 +1,75 @@
+# Root .gitignore for Sae_gestion_bornes
+
+# JetBrains / IntelliJ / Android Studio
+/.idea/
+*.iml
+*.iws
+.idea_modules/
+
+# VS Code
+.vscode/
+
+# Gradle / Android
+.gradle/
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
+gradle-wrapper.jar
+local.properties
+
+# Android artifacts
+*.apk
+*.ap_
+*.aab
+.externalNativeBuild/
+.cxx/
+
+# Keystores
+*.jks
+*.keystore
+
+# Node / Web
+node_modules/
+dist/
+build/
+coverage/
+package-lock.json
+yarn.lock
+
+# Python (if api is python)
+venv/
+ENV/
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment files and secrets
+.env
+.env.*
+secrets/
+*.pem
+*.key
+
+# Misc
+*.class
+*.jar
+*.war
+*.ear
+
+# Keep gradle wrapper jar tracked
+!/gradle/wrapper/gradle-wrapper.jar
+
+# Module-specific ignores (feel free to override in module .gitignore files)
+/MobileApp/.gradle/
+/MobileApp/**/build/
+/WebAdmin/node_modules/
+/WebAdmin/dist/
+
+# End of .gitignore
