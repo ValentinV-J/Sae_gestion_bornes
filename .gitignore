@@ -1,0 +1,55 @@
+# MobileApp module .gitignore (Android / Kotlin)
+
+# Android Studio / IntelliJ
+/.idea/
+*.iml
+*.iws
+.idea_modules/
+
+# Gradle
+.gradle/
+**/build/
+!gradle-wrapper.jar
+
+# Local configuration
+local.properties
+
+# Android generated files
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Kotlin/Java
+*.class
+
+# Keystore files
+*.jks
+*.keystore
+
+# APKs and bundles
+*.apk
+*.ap_
+*.aab
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+thumbs.db
+
+# Network security configs (if you have dev overrides)
+network_security_config.xml
+
+# Misc
+.env
+.env.*
+node_modules/
+
+# Ignore module-specific build output
+/app/build/
+
+# Keep gradle wrapper jar tracked
+!gradle/wrapper/gradle-wrapper.jar
+
+# End of MobileApp/.gitignore
