@@ -1,19 +1,37 @@
-# CentralServer .gitignore (Java / Maven multi-module)
-
-# IntelliJ
+# JetBrains / IntelliJ / Android Studio
 /.idea/
 *.iml
 *.iws
+.idea_modules/
 
-# Maven
+# Maven / Java
 /target/
 **/target/
 .settings/
-
-# Eclipse
 .classpath
 .project
-.settings/
+*.class
+*.jar
+*.war
+*.ear
+
+# Gradle / Android
+.gradle/
+/.gradle/
+build/
+**/build/
+!gradle-wrapper.jar
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Android signing files
+*.jks
+*.keystore
+
+# Node
+node_modules/
 
 # Logs
 *.log
@@ -22,20 +40,11 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+thumbs.db
 
 # Environment
 .env
 .env.*
 
-# Build artifacts
-*.jar
-*.war
-*.ear
-
-# Misc
-*.class
-
 # Keep important project files tracked
 !pom.xml
-
-# End of CentralServer/.gitignore

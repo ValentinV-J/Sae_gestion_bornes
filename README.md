@@ -1,8 +1,14 @@
-# CentralServer — Serveur de Centralisation des Bornes
+# SAE Gestion Bornes
+
+Ce dépôt contient deux composants du projet de gestion de bornes de dépôt-retrait de colis :
+- `CentralServer/` : serveur TCP Java pour la logique borne/colis.
+- `MobileApp/` : application Android Kotlin pour les livreurs.
+
+## CentralServer — Serveur de Centralisation des Bornes
 
 Serveur TCP multi-threadé en Java pour gérer les communications entre les bornes de dépôt-retrait de colis (µC) et la base de données MongoDB (directement ou via l'API Node.js).
 
-## Architecture
+### Architecture
 
 ```
 CentralServer/
@@ -22,11 +28,11 @@ CentralServer/
     └── MainClient.java            # Client TCP interactif (simule un µC)
 ```
 
-## Protocole TCP
+### Protocole TCP
 
 Les messages sont des chaînes de texte, **une par ligne**, terminée par `\n`.
 
-### µC → Serveur
+#### µC → Serveur
 
 | Commande | Paramètres | Description |
 |---|---|---|
@@ -37,7 +43,7 @@ Les messages sont des chaînes de texte, **une par ligne**, terminée par `\n`.
 | `PROBLEME_OUVERTURE` | `borneId numeroCasier contexte` | Problème d'ouverture |
 | `BUZZER_TIMEOUT` | `borneId numeroCasier contexte` | Délai buzzer écoulé |
 
-### Serveur → µC
+#### Serveur → µC
 
 | Réponse | Description |
 |---|---|
@@ -46,71 +52,48 @@ Les messages sont des chaînes de texte, **une par ligne**, terminée par `\n`.
 | `OK` | Accusé de réception générique |
 | `ERR <message>` | Erreur avec description |
 
-## Prérequis
+### Lancement rapide
 
-- **Java 14+** (pour les switch expressions)
-- **MongoDB** démarré localement (`mongod`)
-- **API Node.js** démarrée sur le port 3000 (base `bornesapi` initialisée)
-- **Bibliothèques MongoDB Java driver** (`.jar`) configurées dans IDEA
-
-## Lancement
-
-### Serveur
-```
+```bash
+# Serveur
 BornesCentralServer 9000
 # ou avec URLs personnalisées :
 BornesCentralServer 9000 http://localhost:3000/api mongodb://localhost:27017
-```
 
-### Client de test
-```
+# Client de test
 BornesClient localhost 9000
 ```
 
-### Commandes du client de test
+## MobileApp — Application Mobile Android
+
+Application Android native en **Kotlin** pour les livreurs. Elle permet de scanner le QR code d'un colis et de confirmer son arrivée à une borne.
+
+### Architecture
 
 ```
-BornesClient> rfid borne-01 A1B2C3D4
-BornesClient> depot borne-01
-BornesClient> retrait borne-01 123456
-BornesClient> ferme borne-01 3 depot
-BornesClient> probleme borne-01 3 depot
-BornesClient> timeout borne-01 3 retrait
-BornesClient> quit
+MobileApp/
+├── app/src/main/java/fr/iutbm/bornes/mobile/
+│   ├── MainActivity.kt          # Accueil (scan + paramètres)
+│   ├── ScanActivity.kt          # Scanner QR (CameraX + ML Kit)
+│   ├── DepotActivity.kt         # Vérification UUID + confirmation dépôt
+│   ├── SettingsActivity.kt      # Config URL serveur
+│   ├── api/
+│   │   ├── ApiClient.kt         # Singleton Retrofit (URL configurable)
+│   │   ├── ApiService.kt        # Interface Retrofit (2 routes)
+│   │   └── model/ColisResponse.kt
+│   └── scanner/
+│       └── QrCodeAnalyzer.kt    # CameraX ImageAnalysis.Analyzer
+└── app/src/main/res/
+    ├── layout/ (4 layouts XML)
+    ├── values/ (strings, colors, themes)
+    ├── drawable/scan_frame_border.xml
+    └── xml/network_security_config.xml
 ```
 
-## Flux typiques
+### Configurer et lancer
 
-### Dépôt livreur
-```
-rfid borne-01 A1B2C3D4      → OK RFID Dupont Jean
-depot borne-01               → OK CASIER 3
-(livreur dépose le colis)
-ferme borne-01 3 depot       → OK
-```
+1. Ouvrir `MobileApp/` dans Android Studio.
+2. Laisser Gradle télécharger les dépendances.
+3. Lancer sur émulateur (API 26+) ou appareil physique.
 
-### Retrait client
-```
-retrait borne-01 123456      → OK CASIER 5
-(client récupère le colis)
-ferme borne-01 5 retrait     → OK
-```
-
-### Problème d'ouverture
-```
-depot borne-01               → OK CASIER 3
-(problème électronique)
-probleme borne-01 3 depot    → OK CASIER 7   (casier alternatif)
-ferme borne-01 7 depot       → OK
-```
-
-## Choix du driver
-
-Dans `ThreadServer.java`, chaque méthode propose les deux alternatives en commentaire :
-```java
-// Driver HTTP (API Node) — utilisé par défaut :
-String answer = exchanger.getHttpDriver().verifierRfid(idRfid);
-
-// Driver Mongo direct — décommenter pour l'utiliser :
-// String answer = exchanger.getMongoDriver().verifierRfid(idRfid);
-```
+URL API par défaut sur émulateur : `http://10.0.2.2:3000/api/`.

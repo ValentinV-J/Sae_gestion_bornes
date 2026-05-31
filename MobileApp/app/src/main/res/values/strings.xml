@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Bornes — Dépôt Colis</string>
+    <string name="subtitle">Gestion des bornes de dépôt-retrait</string>
+
+    <!-- MainActivity -->
+    <string name="btn_scan">📷  Scanner un colis</string>
+    <string name="btn_settings">⚙  Paramètres</string>
+    <string name="server_url_label">Serveur : %1$s</string>
+
+    <!-- ScanActivity -->
+    <string name="scan_instruction">Pointez vers le QR code du colis</string>
+    <string name="uuid_detected">UUID : %1$s</string>
+    <string name="verifying">Vérification en cours…</string>
+    <string name="btn_cancel">Annuler</string>
+    <string name="camera_permission_denied">Permission caméra refusée. Impossible de scanner.</string>
+    <string name="camera_error">Erreur caméra : %1$s</string>
+
+    <!-- DepotActivity -->
+    <string name="uuid_label">UUID : %1$s</string>
+    <string name="colis_found">✅  Colis trouvé</string>
+    <string name="colis_info_title">Informations du colis</string>
+    <string name="statut_label">Statut : %1$s</string>
+    <string name="taille_label">Taille : %1$s</string>
+    <string name="casier_label">Casier : %1$s</string>
+    <string name="not_yet_assigned">Non encore attribué</string>
+    <string name="confirming">Envoi de la confirmation…</string>
+    <string name="confirmation_ok">✅  Arrivée confirmée ! Présentez votre badge RFID à la borne.</string>
+    <string name="btn_confirm">Confirmer l\'arrivée</string>
+    <string name="btn_retry">🔁  Rescanner</string>
+    <string name="btn_back_home">← Retour à l\'accueil</string>
+
+    <!-- Erreurs -->
+    <string name="error_no_uuid">Aucun UUID reçu. Veuillez rescanner.</string>
+    <string name="error_unknown">Erreur inconnue</string>
+    <string name="error_http">Erreur serveur (HTTP %1$d)</string>
+    <string name="error_network">Impossible de joindre le serveur : %1$s</string>
+    <string name="error_colis_already">Ce colis est dans l\'état : %1$s</string>
+
+    <!-- SettingsActivity -->
+    <string name="settings_title">Paramètres</string>
+    <string name="api_url_label">URL de l\'API Node.js</string>
+    <string name="api_url_hint">http://192.168.X.X:3000/api/</string>
+    <string name="api_url_hint_detail">Sur émulateur Android : http://10.0.2.2:3000/api/\nSur appareil physique : IP locale du serveur</string>
+    <string name="btn_save">Sauvegarder</string>
+    <string name="btn_reset_url">Réinitialiser (défaut émulateur)</string>
+    <string name="settings_saved">URL sauvegardée</string>
+    <string name="error_url_empty">L\'URL ne peut pas être vide</string>
+    <string name="error_url_format">L\'URL doit commencer par http:// ou https://</string>
+</resources>
