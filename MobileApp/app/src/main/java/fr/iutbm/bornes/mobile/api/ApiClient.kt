@@ -1,6 +1,7 @@
 package fr.iutbm.bornes.mobile.api
 
 import android.content.Context
+import fr.iutbm.bornes.mobile.BuildConfig
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -55,7 +56,11 @@ object ApiClient {
 
     private fun buildRetrofit(baseUrl: String): Retrofit {
         val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = if (BuildConfig.DEBUG) {
+                HttpLoggingInterceptor.Level.BODY
+            } else {
+                HttpLoggingInterceptor.Level.NONE
+            }
         }
         val client = OkHttpClient.Builder()
             .addInterceptor(logging)
