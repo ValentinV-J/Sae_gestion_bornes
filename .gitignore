@@ -1,0 +1,65 @@
+# JetBrains / Android Studio
+/.idea/
+*.iml
+*.iws
+.idea_modules/
+
+# Gradle
+.gradle/
+build/
+**/build/
+!gradle-wrapper.jar
+
+# Local configuration
+local.properties
+/.gradle/
+
+# Android generated files
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Keystore files
+*.jks
+*.keystore
+
+# Misc
+.DS_Store
+*.log
+*.apk
+*.ap_
+
+# Environment files
+.env
+.env.*
+
+# Kotlin/Java
+*.class
+
+# Proguard
+/proguard/
+
+# Jetifier/IDE caches
+.idea/
+.idea/*
+
+# Ignore Android Studio specific files which shouldn't be committed
+.idea/*
+!/.idea/gradle.xml
+!/.idea/inspectionProfiles
+
+# Ignore node modules (if any frontend parts are present)
+node_modules/
+
+# Ignore build output from Android modules
+/MobileApp/app/build/
+/MobileApp/.gradle/
+
+# Ignore wrapper and gradle caches
+**/gradle-wrapper.jar
+
+# Other
+*.keystore
+thumbs.db
+
+# End of .gitignore
