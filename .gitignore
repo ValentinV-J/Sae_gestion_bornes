@@ -1,59 +1,53 @@
-# JetBrains / Android Studio
+# JetBrains / IntelliJ / Android Studio
 /.idea/
 *.iml
 *.iws
 .idea_modules/
 
-# Gradle
+# Maven / Java
+/target/
+**/target/
+.settings/
+.classpath
+.project
+*.class
+*.jar
+*.war
+*.ear
+
+# Gradle / Android
 .gradle/
+/.gradle/
 build/
 **/build/
 !gradle-wrapper.jar
-
-# Local configuration
 local.properties
-/.gradle/
-
-# Android generated files
 captures/
 .externalNativeBuild/
 .cxx/
-
-# Keystore files
-*.jks
-*.keystore
-
-# Misc
-.DS_Store
-*.log
+/proguard/
 *.apk
 *.ap_
 
-# Environment files
+# Android signing files
+*.jks
+*.keystore
+
+# Node
+node_modules/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+thumbs.db
+
+# Environment
 .env
 .env.*
 
-# Kotlin/Java
-*.class
-
-# Proguard
-/proguard/
-
-# Ignore Android Studio specific files which shouldn't be committed
-/.idea/
-
-# Ignore node modules (if any frontend parts are present)
-node_modules/
-
-# Ignore build output from Android modules
-/MobileApp/app/build/
-/MobileApp/.gradle/
-
-# Ignore wrapper and gradle caches
-**/gradle-wrapper.jar
-
-# Other
-*.keystore
-thumbs.db
-
-# End of .gitignore
+# Keep important project files tracked
+!pom.xml
