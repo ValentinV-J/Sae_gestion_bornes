@@ -1,6 +1,16 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '@/stores/auth.store'
 
 const routes = [
+  // ── Route publique ───────────────────────────────────────────
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/views/LoginView.vue'),
+    meta: { title: 'Connexion', public: true }
+  },
+
+  // ── Routes protégées (JWT requis) ────────────────────────────
   {
     path: '/',
     name: 'Dashboard',
@@ -36,7 +46,10 @@ const routes = [
     name: 'Logs',
     component: () => import('@/views/LogsView.vue'),
     meta: { title: 'Logs', icon: '📋' }
-  }
+  },
+
+  // ── Catch-all ────────────────────────────────────────────────
+  { path: '/:pathMatch(.*)*', redirect: '/' }
 ]
 
 const router = createRouter({
@@ -44,7 +57,21 @@ const router = createRouter({
   routes
 })
 
-// Mise à jour du titre de la page
+// ── Garde de navigation : redirige vers /login si non connecté ──
+router.beforeEach((to) => {
+  const authStore = useAuthStore()
+
+  if (!to.meta.public && !authStore.estConnecte) {
+    return { name: 'Login' }
+  }
+
+  // Si déjà connecté et qu'il essaie d'aller sur /login → dashboard
+  if (to.name === 'Login' && authStore.estConnecte) {
+    return { name: 'Dashboard' }
+  }
+})
+
+// ── Mise à jour du titre de la page ──────────────────────────────
 router.afterEach(to => {
   document.title = `${to.meta.title || 'Admin'} — Bornes`
 })
