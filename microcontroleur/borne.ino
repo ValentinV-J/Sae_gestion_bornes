@@ -1,18 +1,26 @@
 /**
- * borne.ino — Sketch principal du micro-contrôleur de la borne de dépôt/retrait
+ * borne.ino — Sketch principal ESP32
  *
- * ESP32 — Arduino Framework
+ * Protocole TCP (correspond exactement au ThreadServer.java de Valentin) :
  *
- * Bibliothèques nécessaires (à installer via Arduino Library Manager) :
- *   - TM1637Display  (par Avishay Orpaz)
- *   - MFRC522        (par GithubCommunity)
- *   - IRremoteESP8266 (par crankyoldgit) — fonctionne aussi sur ESP32
+ *  µC → Serveur Java :
+ *    BADGE_RFID <nomBorne> <idRfid>
+ *    DEMANDE_DEPOT <nomBorne>
+ *    CODE_RETRAIT <nomBorne> <code>
+ *    CASIER_FERME <nomBorne> <numeroCasier> depot|retrait
+ *    PROBLEME_OUVERTURE <nomBorne> <numeroCasier> <taille> depot|retrait
+ *    BUZZER_TIMEOUT <nomBorne> <numeroCasier> depot|retrait
  *
- * Architecture :
- *   - Machine à états pour gérer les scénarios dépôt/retrait
- *   - Interruption pour la télécommande IR (non bloquant)
- *   - Paramètres persistés en flash via Preferences
- *   - Communication TCP texte vers le serveur Java central
+ *  Serveur Java → µC :
+ *    OK RFID <nom> <prenom>    (badge livreur accepté)
+ *    OK CASIER <N>             (numéro de casier à ouvrir)
+ *    OK                        (acquittement générique)
+ *    ERR <message>             (erreur)
+ *
+ * Bibliothèques (Arduino Library Manager) :
+ *   - TM1637Display (Avishay Orpaz)
+ *   - MFRC522 (GithubCommunity)
+ *   - IRremoteESP8266 (crankyoldgit)
  */
 
 #include <WiFi.h>
@@ -29,58 +37,38 @@
 //  OBJETS MATÉRIELS
 // =============================================
 TM1637Display afficheur(PIN_LCD_CLK, PIN_LCD_DIO);
-MFRC522 rfid(PIN_RFID_SS, PIN_RFID_RST);
-IRrecv irRecv(PIN_IR_RECV);
+MFRC522       rfid(PIN_RFID_SS, PIN_RFID_RST);
+IRrecv        irRecv(PIN_IR_RECV);
 decode_results irResultat;
-Preferences preferences;
-WiFiClient client;
+Preferences   preferences;
+WiFiClient    client;
 
 // =============================================
-//  ÉTATS DE LA MACHINE À ÉTATS
+//  MACHINE À ÉTATS
 // =============================================
 enum Etat {
-  IDLE,                  // En attente (badge ou code IR)
-  DEPOT_OUVERTURE,       // Badge OK, attente ouverture porte (3s)
-  DEPOT_FERMETURE,       // Porte ouverte, attente fermeture (B secondes)
-  DEPOT_BUZZER,          // Porte non fermée, buzzer actif (X secondes)
-  RETRAIT_OUVERTURE,     // Code OK, attente ouverture porte (3s)
-  RETRAIT_FERMETURE,     // Porte ouverte, attente fermeture (B secondes)
-  RETRAIT_BUZZER,        // Porte non fermée, buzzer actif (X secondes)
+  IDLE,
+  DEPOT_OUVERTURE,   // Badge OK + casier attribué → attend ouverture switch (A ms)
+  DEPOT_FERMETURE,   // Switch ouvert → attend fermeture (B ms)
+  DEPOT_BUZZER,      // Buzzer actif → attend fermeture (X ms) avant BUZZER_TIMEOUT
+  RETRAIT_OUVERTURE, // Code OK + casier attribué → attend ouverture switch (A ms)
+  RETRAIT_FERMETURE, // Switch ouvert → attend fermeture (B ms)
+  RETRAIT_BUZZER,    // Buzzer actif → attend fermeture (X ms) avant BUZZER_TIMEOUT
 };
 
-Etat etatCourant = IDLE;
+Etat etatCourant    = IDLE;
+unsigned long tsEtat = 0;  // Timestamp du dernier changement d'état
 
 // =============================================
 //  VARIABLES GLOBALES
 // =============================================
-unsigned long timestampEtat = 0;    // Moment du dernier changement d'état
-int casierCourant = -1;             // Numéro du casier en cours de traitement
-String codeIR = "";                 // Accumulation des chiffres IR (4 chiffres)
+int    casierCourant = -1;  // Numéro de casier en cours de traitement
+String codeIR        = "";  // Accumulation des chiffres IR
 
-// Délais persistés en flash (mis à jour par le serveur Java si besoin)
+// Délais persistés en flash
 unsigned long delaiOuverture = DEFAULT_DELAI_OUVERTURE_MS;
 unsigned long delaiFermeture = DEFAULT_DELAI_FERMETURE_MS;
 unsigned long delaiBuzzer    = DEFAULT_DELAI_BUZZER_MS;
-
-// Flag d'interruption IR (modifié par la routine d'interruption)
-volatile bool irRecu = false;
-
-// =============================================
-//  PROTOTYPES DE FONCTIONS
-// =============================================
-void connecterWiFi();
-bool connecterServeur();
-String envoyerRequete(const String& message);
-void chargerParametresFlash();
-void sauvegarderParametresFlash();
-void parserParametres(const String& reponse);
-String lireBadgeRFID();
-void afficherTexte(const String& texte);
-void afficherNombre(int nombre);
-int lireChiffreIR();
-void changerEtat(Etat nouvelEtat);
-bool switchActionne();
-void activerBuzzer(bool actif);
 
 // =============================================
 //  SETUP
@@ -88,108 +76,111 @@ void activerBuzzer(bool actif);
 void setup() {
   Serial.begin(115200);
 
-  // Initialisation des pins
   pinMode(PIN_SWITCH, INPUT_PULLUP);
   pinMode(PIN_BUZZER, OUTPUT);
   digitalWrite(PIN_BUZZER, LOW);
 
-  // Afficheur
   afficheur.setBrightness(5);
-  afficheur.showNumberDec(0);
+  afficherTexte("----");
 
-  // SPI + RFID
   SPI.begin();
   rfid.PCD_Init();
 
-  // Récepteur IR (via interruption, non bloquant)
   irRecv.enableIRIn();
 
-  // Chargement des délais depuis la mémoire flash
   chargerParametresFlash();
-
-  // Connexion WiFi
   connecterWiFi();
 
-  Serial.println("✅ Borne prête.");
-  afficherTexte("----");
+  Serial.println("✅ Borne prête — en attente badge ou code IR");
 }
 
 // =============================================
-//  LOOP — Machine à états principale
+//  LOOP — Machine à états
 // =============================================
 void loop() {
-  // S'assurer que la connexion TCP est active avant chaque cycle
+  // Reconnexion TCP si perdue
   if (!client.connected()) {
-    Serial.println("🔁 Reconnexion au serveur Java...");
-    connecterServeur();
-    delay(1000);
-    return;
+    Serial.println("🔁 Reconnexion serveur Java...");
+    if (!connecterServeur()) { delay(2000); return; }
   }
 
-  unsigned long maintenant = millis();
+  unsigned long now = millis();
 
   switch (etatCourant) {
 
-    // ------------------------------------------
+    // ──────────────────────────────────────────
     case IDLE: {
-      // Vérifier si un badge RFID est présent
+      // --- CAS LIVREUR : badge RFID ---
       String badge = lireBadgeRFID();
       if (badge.length() > 0) {
-        Serial.println("Badge lu : " + badge);
-        String requete = String(BORNE_ID) + ":BADGE:" + badge;
-        String reponse = envoyerRequete(requete);
+        Serial.println("🏷️  Badge lu : " + badge);
 
-        if (reponse.startsWith("OPEN:")) {
-          parserParametres(reponse);   // Récupère N° casier + éventuellement A,B,X,Y
-          afficherTexte("OPEN");
-          changerEtat(DEPOT_OUVERTURE);
-        } else {
-          Serial.println("Badge refusé : " + reponse);
+        // Étape 1 : vérifier le badge
+        String rep1 = envoyerRequete("BADGE_RFID " + String(BORNE_NOM) + " " + badge);
+
+        if (!rep1.startsWith("OK")) {
+          Serial.println("Badge refusé : " + rep1);
           afficherTexte("Err");
           delay(DUREE_AFFICHAGE_ERR);
           afficherTexte("----");
+          break;
         }
+
+        // Étape 2 : demander un casier de dépôt
+        String rep2 = envoyerRequete("DEMANDE_DEPOT " + String(BORNE_NOM));
+
+        if (!rep2.startsWith("OK CASIER")) {
+          Serial.println("Pas de casier disponible : " + rep2);
+          afficherTexte("Err");
+          delay(DUREE_AFFICHAGE_ERR);
+          afficherTexte("----");
+          break;
+        }
+
+        // Extraire le numéro de casier : "OK CASIER 3" → 3
+        casierCourant = rep2.substring(10).toInt();  // après "OK CASIER "
+        Serial.println("📦 Casier attribué : " + String(casierCourant));
+        afficherTexte("OPEN");
+        changerEtat(DEPOT_OUVERTURE);
       }
 
-      // Vérifier si un chiffre IR a été reçu (accumulation du code client)
+      // --- CAS CLIENT : code IR ---
       int chiffre = lireChiffreIR();
       if (chiffre >= 0) {
         codeIR += String(chiffre);
-        afficherNombre(codeIR.toInt());  // Affiche les chiffres saisis jusqu'ici
-        Serial.println("Code IR en cours : " + codeIR);
+        afficherNombre(codeIR.toInt());
+        Serial.println("🔢 Code IR : " + codeIR);
 
-        if (codeIR.length() == NB_CHIFFRES_CODE) {
-          // Code complet, on l'envoie au serveur
-          String requete = String(BORNE_ID) + ":CODE:" + codeIR;
-          String reponse = envoyerRequete(requete);
-          codeIR = "";  // Réinitialiser pour la prochaine saisie
+        if ((int)codeIR.length() == NB_CHIFFRES_CODE) {
+          String rep = envoyerRequete("CODE_RETRAIT " + String(BORNE_NOM) + " " + codeIR);
+          codeIR = "";
 
-          if (reponse.startsWith("OPEN:")) {
-            parserParametres(reponse);
-            afficherTexte("OPEN");
-            changerEtat(RETRAIT_OUVERTURE);
-          } else {
-            Serial.println("Code invalide : " + reponse);
+          if (!rep.startsWith("OK CASIER")) {
+            Serial.println("Code invalide : " + rep);
             afficherTexte("Err");
             delay(DUREE_AFFICHAGE_ERR);
             afficherTexte("----");
+            break;
           }
+
+          casierCourant = rep.substring(10).toInt();
+          Serial.println("🔓 Casier retrait : " + String(casierCourant));
+          afficherTexte("OPEN");
+          changerEtat(RETRAIT_OUVERTURE);
         }
       }
       break;
     }
 
-    // ------------------------------------------
+    // ──────────────────────────────────────────
     case DEPOT_OUVERTURE: {
-      // Attendre que le livreur ouvre la porte (switch actionné)
       if (switchActionne()) {
-        Serial.println("Porte ouverte, attente fermeture...");
+        Serial.println("✅ Switch ouvert → attente fermeture");
         changerEtat(DEPOT_FERMETURE);
-      } else if (maintenant - timestampEtat >= delaiOuverture) {
-        // Timeout : le livreur n'a pas ouvert dans les temps
-        Serial.println("Timeout ouverture → ERR_OPEN");
-        String requete = String(BORNE_ID) + ":ERR_OPEN:" + String(casierCourant);
-        envoyerRequete(requete);
+      } else if (now - tsEtat >= delaiOuverture) {
+        Serial.println("⏱️  Timeout ouverture → PROBLEME_OUVERTURE");
+        envoyerRequete("PROBLEME_OUVERTURE " + String(BORNE_NOM) + " "
+                       + String(casierCourant) + " " + String(TAILLE_COLIS) + " depot");
         afficherTexte("Err");
         delay(DUREE_AFFICHAGE_ERR);
         afficherTexte("----");
@@ -198,45 +189,40 @@ void loop() {
       break;
     }
 
-    // ------------------------------------------
+    // ──────────────────────────────────────────
     case DEPOT_FERMETURE: {
-      // Attendre que le livreur referme la porte
       if (!switchActionne()) {
-        Serial.println("Porte refermée → DEPOT_OK");
-        String requete = String(BORNE_ID) + ":DEPOT_OK:" + String(casierCourant);
-        envoyerRequete(requete);
-        afficherTexte("done");
+        Serial.println("✅ Porte refermée → CASIER_FERME depot");
+        envoyerRequete("CASIER_FERME " + String(BORNE_NOM) + " "
+                       + String(casierCourant) + " depot");
+        afficherTexte("donE");
         delay(2000);
         afficherTexte("----");
         changerEtat(IDLE);
-      } else if (maintenant - timestampEtat >= delaiFermeture) {
-        // La porte n'est toujours pas fermée → buzzer
-        Serial.println("Timeout fermeture → Buzzer ON");
+      } else if (now - tsEtat >= delaiFermeture) {
+        Serial.println("⏱️  Timeout fermeture → Buzzer ON");
         activerBuzzer(true);
         changerEtat(DEPOT_BUZZER);
       }
       break;
     }
 
-    // ------------------------------------------
+    // ──────────────────────────────────────────
     case DEPOT_BUZZER: {
-      // Buzzer actif, on attend encore
       if (!switchActionne()) {
-        // Le livreur a finalement fermé pendant le buzzer
         activerBuzzer(false);
-        Serial.println("Porte refermée (pendant buzzer) → DEPOT_OK");
-        String requete = String(BORNE_ID) + ":DEPOT_OK:" + String(casierCourant);
-        envoyerRequete(requete);
-        afficherTexte("done");
+        Serial.println("✅ Fermé pendant buzzer → CASIER_FERME depot");
+        envoyerRequete("CASIER_FERME " + String(BORNE_NOM) + " "
+                       + String(casierCourant) + " depot");
+        afficherTexte("donE");
         delay(2000);
         afficherTexte("----");
         changerEtat(IDLE);
-      } else if (maintenant - timestampEtat >= delaiBuzzer) {
-        // Toujours pas fermée après le buzzer → erreur définitive
+      } else if (now - tsEtat >= delaiBuzzer) {
         activerBuzzer(false);
-        Serial.println("Erreur fermeture définitive → ERR_CLOSE");
-        String requete = String(BORNE_ID) + ":ERR_CLOSE:" + String(casierCourant);
-        envoyerRequete(requete);
+        Serial.println("🚨 Buzzer timeout → BUZZER_TIMEOUT depot");
+        envoyerRequete("BUZZER_TIMEOUT " + String(BORNE_NOM) + " "
+                       + String(casierCourant) + " depot");
         afficherTexte("Err");
         delay(DUREE_AFFICHAGE_ERR);
         afficherTexte("----");
@@ -245,14 +231,13 @@ void loop() {
       break;
     }
 
-    // ------------------------------------------
+    // ──────────────────────────────────────────
     case RETRAIT_OUVERTURE: {
-      // Identique à DEPOT_OUVERTURE mais pour le retrait
       if (switchActionne()) {
         changerEtat(RETRAIT_FERMETURE);
-      } else if (maintenant - timestampEtat >= delaiOuverture) {
-        String requete = String(BORNE_ID) + ":ERR_OPEN:" + String(casierCourant);
-        envoyerRequete(requete);
+      } else if (now - tsEtat >= delaiOuverture) {
+        envoyerRequete("PROBLEME_OUVERTURE " + String(BORNE_NOM) + " "
+                       + String(casierCourant) + " " + String(TAILLE_COLIS) + " retrait");
         afficherTexte("Err");
         delay(DUREE_AFFICHAGE_ERR);
         afficherTexte("----");
@@ -261,36 +246,38 @@ void loop() {
       break;
     }
 
-    // ------------------------------------------
+    // ──────────────────────────────────────────
     case RETRAIT_FERMETURE: {
       if (!switchActionne()) {
-        String requete = String(BORNE_ID) + ":RETRAIT_OK:" + String(casierCourant);
-        envoyerRequete(requete);
-        afficherTexte("done");
+        Serial.println("✅ Porte refermée → CASIER_FERME retrait");
+        envoyerRequete("CASIER_FERME " + String(BORNE_NOM) + " "
+                       + String(casierCourant) + " retrait");
+        afficherTexte("donE");
         delay(2000);
         afficherTexte("----");
         changerEtat(IDLE);
-      } else if (maintenant - timestampEtat >= delaiFermeture) {
+      } else if (now - tsEtat >= delaiFermeture) {
         activerBuzzer(true);
         changerEtat(RETRAIT_BUZZER);
       }
       break;
     }
 
-    // ------------------------------------------
+    // ──────────────────────────────────────────
     case RETRAIT_BUZZER: {
       if (!switchActionne()) {
         activerBuzzer(false);
-        String requete = String(BORNE_ID) + ":RETRAIT_OK:" + String(casierCourant);
-        envoyerRequete(requete);
-        afficherTexte("done");
+        envoyerRequete("CASIER_FERME " + String(BORNE_NOM) + " "
+                       + String(casierCourant) + " retrait");
+        afficherTexte("donE");
         delay(2000);
         afficherTexte("----");
         changerEtat(IDLE);
-      } else if (maintenant - timestampEtat >= delaiBuzzer) {
+      } else if (now - tsEtat >= delaiBuzzer) {
         activerBuzzer(false);
-        String requete = String(BORNE_ID) + ":ERR_CLOSE:" + String(casierCourant);
-        envoyerRequete(requete);
+        Serial.println("🚨 Buzzer timeout → BUZZER_TIMEOUT retrait");
+        envoyerRequete("BUZZER_TIMEOUT " + String(BORNE_NOM) + " "
+                       + String(casierCourant) + " retrait");
         afficherTexte("Err");
         delay(DUREE_AFFICHAGE_ERR);
         afficherTexte("----");
@@ -302,150 +289,75 @@ void loop() {
 }
 
 // =============================================
-//  IMPLÉMENTATION DES FONCTIONS
+//  RÉSEAU
 // =============================================
-
-/** Connexion au réseau WiFi */
 void connecterWiFi() {
-  Serial.print("Connexion WiFi à ");
+  Serial.print("📶 Connexion WiFi : ");
   Serial.println(WIFI_SSID);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+    delay(500); Serial.print(".");
   }
-  Serial.println("\n✅ WiFi connecté — IP : " + WiFi.localIP().toString());
+  Serial.println("\n✅ WiFi OK — IP : " + WiFi.localIP().toString());
   connecterServeur();
 }
 
-/** Ouverture de la connexion TCP vers le serveur Java */
 bool connecterServeur() {
   if (client.connect(SERVER_IP, SERVER_PORT)) {
-    Serial.println("✅ Connecté au serveur Java");
+    Serial.println("✅ Connecté au serveur Java (" + String(SERVER_IP) + ":" + String(SERVER_PORT) + ")");
     return true;
   }
-  Serial.println("❌ Connexion serveur Java échouée");
+  Serial.println("❌ Connexion serveur échouée");
   return false;
 }
 
 /**
- * Envoie une requête texte au serveur Java et retourne la réponse.
- * Le message est terminé par \n (obligatoire pour BufferedReader côté Java).
+ * Envoie une commande texte et retourne la réponse.
+ * Le \n final est requis par le BufferedReader Java.
  */
-String envoyerRequete(const String& message) {
-  if (!client.connected()) {
-    Serial.println("⚠️ Socket non connectée, tentative de reconnexion...");
-    if (!connecterServeur()) return "ERR:NO_CONNECTION";
-  }
+String envoyerRequete(const String& cmd) {
+  if (!client.connected() && !connecterServeur()) return "ERR:NO_CONNECTION";
 
-  Serial.println("→ Envoi : " + message);
-  client.println(message);  // println ajoute \r\n automatiquement
+  Serial.println("→ " + cmd);
+  client.println(cmd);  // println = cmd + \r\n
 
-  // Attendre la réponse (timeout 5s)
   unsigned long debut = millis();
   while (!client.available()) {
-    if (millis() - debut > 5000) return "ERR:TIMEOUT";
+    if (millis() - debut > 5000) { Serial.println("⏱️  Timeout réponse"); return "ERR:TIMEOUT"; }
     delay(10);
   }
 
-  String reponse = client.readStringUntil('\n');
-  reponse.trim();
-  Serial.println("← Réponse : " + reponse);
-  return reponse;
+  String rep = client.readStringUntil('\n');
+  rep.trim();
+  Serial.println("← " + rep);
+  return rep;
 }
 
-/**
- * Parse la réponse du serveur pour extraire :
- * - Le numéro de casier (toujours présent dans OPEN:N)
- * - Les paramètres A,B,X,Y si fournis (OPEN:N:A:B:X:Y)
- * Exemple : "OPEN:3" ou "OPEN:3:3000:10000:10000"
- */
-void parserParametres(const String& reponse) {
-  // Format : OPEN:N ou OPEN:N:A:B:X
-  int idx1 = reponse.indexOf(':');
-  int idx2 = reponse.indexOf(':', idx1 + 1);
-
-  if (idx1 == -1) return;
-
-  // Extraction du numéro de casier
-  if (idx2 == -1) {
-    casierCourant = reponse.substring(idx1 + 1).toInt();
-  } else {
-    casierCourant = reponse.substring(idx1 + 1, idx2).toInt();
-
-    // Extraction des paramètres A, B, X si présents
-    String reste = reponse.substring(idx2 + 1);
-    int i1 = reste.indexOf(':');
-    int i2 = reste.indexOf(':', i1 + 1);
-    int i3 = reste.indexOf(':', i2 + 1);
-
-    if (i1 != -1 && i2 != -1 && i3 != -1) {
-      delaiOuverture = reste.substring(0, i1).toInt();
-      delaiFermeture = reste.substring(i1 + 1, i2).toInt();
-      delaiBuzzer    = reste.substring(i2 + 1, i3).toInt();
-      Serial.println("⚙️ Paramètres mis à jour : A=" + String(delaiOuverture) +
-                     " B=" + String(delaiFermeture) +
-                     " X=" + String(delaiBuzzer));
-      sauvegarderParametresFlash();
-    }
-  }
-
-  Serial.println("📦 Casier cible : " + String(casierCourant));
-}
-
-/** Charge les délais depuis la mémoire flash (survivent au redémarrage) */
-void chargerParametresFlash() {
-  preferences.begin("borne", true); // Mode lecture seule
-  delaiOuverture = preferences.getULong("delaiOuv", DEFAULT_DELAI_OUVERTURE_MS);
-  delaiFermeture = preferences.getULong("delaiFerm", DEFAULT_DELAI_FERMETURE_MS);
-  delaiBuzzer    = preferences.getULong("delaiBuzz", DEFAULT_DELAI_BUZZER_MS);
-  preferences.end();
-  Serial.println("⚙️ Paramètres chargés : A=" + String(delaiOuverture) +
-                 " B=" + String(delaiFermeture) +
-                 " X=" + String(delaiBuzzer));
-}
-
-/** Sauvegarde les délais en mémoire flash après mise à jour par le serveur */
-void sauvegarderParametresFlash() {
-  preferences.begin("borne", false); // Mode écriture
-  preferences.putULong("delaiOuv",  delaiOuverture);
-  preferences.putULong("delaiFerm", delaiFermeture);
-  preferences.putULong("delaiBuzz", delaiBuzzer);
-  preferences.end();
-}
-
-/**
- * Lit un badge RFID si présent.
- * Retourne l'UID sous forme de String en majuscules (ex: "A1B2C3D4")
- * Retourne "" si aucun badge n'est détecté.
- */
+// =============================================
+//  RFID
+// =============================================
 String lireBadgeRFID() {
-  if (!rfid.PICC_IsNewCardPresent() || !rfid.PICC_ReadCardSerial()) {
-    return "";
-  }
+  if (!rfid.PICC_IsNewCardPresent() || !rfid.PICC_ReadCardSerial()) return "";
   String uid = "";
   for (byte i = 0; i < rfid.uid.size; i++) {
     if (rfid.uid.uidByte[i] < 0x10) uid += "0";
     uid += String(rfid.uid.uidByte[i], HEX);
   }
   uid.toUpperCase();
-  rfid.PICC_HaltA();       // Mise en veille de la carte
-  rfid.PCD_StopCrypto1();  // Arrêt du chiffrement
+  rfid.PICC_HaltA();
+  rfid.PCD_StopCrypto1();
   return uid;
 }
 
-/**
- * Lit un chiffre (0-9) depuis la télécommande IR.
- * Retourne -1 si aucune touche n'a été pressée.
- * Utilise irRecv (non bloquant grâce à enableIRIn).
- */
+// =============================================
+//  INFRAROUGE
+//  ⚠️  Les codes HEX ci-dessous sont des exemples génériques.
+//  Flashe le sketch de calibration IR pour obtenir les vrais codes de ta télécommande,
+//  puis remplace chaque valeur ici.
+// =============================================
 int lireChiffreIR() {
   if (!irRecv.decode(&irResultat)) return -1;
-
-  irRecv.resume(); // Prêt pour la prochaine valeur
-
-  // Mapping des codes IR vers les chiffres 0-9
-  // Ces codes dépendent de votre télécommande — à calibrer avec le sketch de test IR
+  irRecv.resume();
   switch (irResultat.value) {
     case 0xFF6897: return 0;
     case 0xFF30CF: return 1;
@@ -457,47 +369,51 @@ int lireChiffreIR() {
     case 0xFF42BD: return 7;
     case 0xFF4AB5: return 8;
     case 0xFF52AD: return 9;
-    default:       return -1; // Touche non reconnue (volume, menu, etc.)
+    default:       return -1;
   }
 }
 
-/**
- * Affiche un texte de 4 caractères sur l'afficheur TM1637.
- * Textes supportés : "OPEN", "Err", "done", "----"
- */
-void afficherTexte(const String& texte) {
-  if (texte == "OPEN") {
-    // O = 0x3F, P = 0x73, E = 0x79, N = 0x37 (encodage 7-seg)
-    afficheur.setSegments((uint8_t[]){0x3F, 0x73, 0x79, 0x37});
-  } else if (texte == "Err") {
-    afficheur.setSegments((uint8_t[]){0x00, 0x79, 0x50, 0x50}); // _Err
-  } else if (texte == "done") {
-    afficheur.setSegments((uint8_t[]){0x5E, 0x3F, 0x54, 0x79}); // donE
-  } else {
-    afficheur.setSegments((uint8_t[]){0x40, 0x40, 0x40, 0x40}); // ----
-  }
+// =============================================
+//  AFFICHEUR TM1637
+// =============================================
+void afficherTexte(const String& t) {
+  if      (t == "OPEN") afficheur.setSegments((uint8_t[]){0x3F, 0x73, 0x79, 0x37});
+  else if (t == "Err")  afficheur.setSegments((uint8_t[]){0x00, 0x79, 0x50, 0x50});
+  else if (t == "donE") afficheur.setSegments((uint8_t[]){0x5E, 0x3F, 0x54, 0x79});
+  else                  afficheur.setSegments((uint8_t[]){0x40, 0x40, 0x40, 0x40}); // ----
 }
 
-/** Affiche un nombre entier sur l'afficheur TM1637 (utile pour la saisie du code IR) */
-void afficherNombre(int nombre) {
-  afficheur.showNumberDec(nombre, true); // true = afficher les zéros de gauche
+void afficherNombre(int n) {
+  afficheur.showNumberDec(n, true);
 }
 
-/** Change l'état de la machine et enregistre le timestamp */
-void changerEtat(Etat nouvelEtat) {
-  etatCourant = nouvelEtat;
-  timestampEtat = millis();
+// =============================================
+//  SWITCH & BUZZER
+// =============================================
+bool switchActionne() { return digitalRead(PIN_SWITCH) == LOW; }
+void activerBuzzer(bool on) { digitalWrite(PIN_BUZZER, on ? HIGH : LOW); }
+
+// =============================================
+//  MACHINE À ÉTATS
+// =============================================
+void changerEtat(Etat e) { etatCourant = e; tsEtat = millis(); }
+
+// =============================================
+//  FLASH (Preferences)
+// =============================================
+void chargerParametresFlash() {
+  preferences.begin("borne", true);
+  delaiOuverture = preferences.getULong("ouv",  DEFAULT_DELAI_OUVERTURE_MS);
+  delaiFermeture = preferences.getULong("ferm", DEFAULT_DELAI_FERMETURE_MS);
+  delaiBuzzer    = preferences.getULong("buzz", DEFAULT_DELAI_BUZZER_MS);
+  preferences.end();
+  Serial.printf("⚙️  Délais — A:%lums B:%lums X:%lums\n", delaiOuverture, delaiFermeture, delaiBuzzer);
 }
 
-/**
- * Retourne true si le switch est actionné (porte ouverte).
- * Le switch est en INPUT_PULLUP donc LOW = actionné.
- */
-bool switchActionne() {
-  return digitalRead(PIN_SWITCH) == LOW;
-}
-
-/** Active ou désactive le buzzer */
-void activerBuzzer(bool actif) {
-  digitalWrite(PIN_BUZZER, actif ? HIGH : LOW);
+void sauvegarderParametresFlash() {
+  preferences.begin("borne", false);
+  preferences.putULong("ouv",  delaiOuverture);
+  preferences.putULong("ferm", delaiFermeture);
+  preferences.putULong("buzz", delaiBuzzer);
+  preferences.end();
 }
