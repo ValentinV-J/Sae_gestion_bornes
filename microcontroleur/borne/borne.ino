@@ -83,8 +83,10 @@ void setup() {
   afficheur.setBrightness(5);
   afficherTexte("----");
 
-  SPI.begin();
-  rfid.PCD_Init();
+ // Forcer les pins SPI selon la configuration du prof (SCK, MISO, MOSI, SS)
+  SPI.begin(18, 23, 19, PIN_RFID_SS);
+  rfid.PCD_Init();              // 
+  rfid.PCD_DumpVersionToSerial(); // Affiche la version du chip dans le Serial Monitor
 
   irRecv.enableIRIn();
 
@@ -98,10 +100,17 @@ void setup() {
 //  LOOP — Machine à états
 // =============================================
 void loop() {
-  // Reconnexion TCP si perdue
+  // TEST DEBUG : Affiche quand on bouge le switch
+  static bool lastSwitch = false;
+  bool currentSwitch = switchActionne();
+  if (currentSwitch != lastSwitch) {
+    Serial.println(currentSwitch ? "🔘 DEBUG : Switch actionné (porte ouverte)" : "🔘 DEBUG : Switch relâché (porte fermée)");
+    lastSwitch = currentSwitch;
+  }
+
+  // Reconnexion TCP si perdue (tentative silencieuse, ne bloque pas la lecture badge)
   if (!client.connected()) {
-    Serial.println("🔁 Reconnexion serveur Java...");
-    if (!connecterServeur()) { delay(2000); return; }
+    connecterServeur();  // ✅ FIX #2 — on tente de reconnecter mais on continue quand même
   }
 
   unsigned long now = millis();
@@ -190,22 +199,22 @@ void loop() {
     }
 
     // ──────────────────────────────────────────
-    case DEPOT_FERMETURE: {
-      if (!switchActionne()) {
-        Serial.println("✅ Porte refermée → CASIER_FERME depot");
-        envoyerRequete("CASIER_FERME " + String(BORNE_NOM) + " "
-                       + String(casierCourant) + " depot");
-        afficherTexte("donE");
-        delay(2000);
-        afficherTexte("----");
-        changerEtat(IDLE);
-      } else if (now - tsEtat >= delaiFermeture) {
-        Serial.println("⏱️  Timeout fermeture → Buzzer ON");
-        activerBuzzer(true);
-        changerEtat(DEPOT_BUZZER);
-      }
-      break;
-    }
+    // case DEPOT_FERMETURE: {
+    //   if (!switchActionne()) {
+    //     Serial.println("✅ Porte refermée → CASIER_FERME depot");
+    //     envoyerRequete("CASIER_FERME " + String(BORNE_NOM) + " "
+    //                    + String(casierCourant) + " depot");
+    //     afficherTexte("donE");
+    //     delay(2000);
+    //     afficherTexte("----");
+    //     changerEtat(IDLE);
+    //   } else if (now - tsEtat >= delaiFermeture) {
+    //     Serial.println("⏱️  Timeout fermeture → Buzzer ON");
+    //     activerBuzzer(true);
+    //     changerEtat(DEPOT_BUZZER);
+    //   }
+    //   break;
+    //}
 
     // ──────────────────────────────────────────
     case DEPOT_BUZZER: {
@@ -357,8 +366,20 @@ String lireBadgeRFID() {
 // =============================================
 int lireChiffreIR() {
   if (!irRecv.decode(&irResultat)) return -1;
+
+  uint64_t valeur = irResultat.value;
   irRecv.resume();
-  switch (irResultat.value) {
+
+  // ✅ DEBUG — Affiche le code brut reçu dans le Serial Monitor
+  //    Appuie sur chaque touche 0-9 et note les valeurs affichées,
+  //    puis remplace les case ci-dessous avec TES vraies valeurs.
+  Serial.print("📡 IR reçu — valeur HEX : 0x");
+  Serial.print((uint32_t)(valeur >> 32), HEX);  // partie haute (si 64 bits)
+  Serial.print((uint32_t)(valeur & 0xFFFFFFFF), HEX);
+  Serial.print("  protocole : ");
+  Serial.println(irResultat.decode_type);
+
+  switch (valeur) {
     case 0xFF6897: return 0;
     case 0xFF30CF: return 1;
     case 0xFF18E7: return 2;
@@ -369,7 +390,9 @@ int lireChiffreIR() {
     case 0xFF42BD: return 7;
     case 0xFF4AB5: return 8;
     case 0xFF52AD: return 9;
-    default:       return -1;
+    default:
+      Serial.println("   ⚠️  Code non mappé — mets à jour le switch avec cette valeur !");
+      return -1;
   }
 }
 
