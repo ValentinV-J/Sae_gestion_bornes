@@ -1,6 +1,6 @@
 <template>
   <div class="app-shell">
-    <aside class="sidebar">
+    <aside class="sidebar" v-if="route.path !== '/login'">
       <div class="sidebar-brand">
         <span class="brand-icon">📦</span>
         <div>
@@ -38,8 +38,10 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import api from '@/services/api'
 
+const route = useRoute()
 const apiOk = ref(false)
 
 const navItems = [

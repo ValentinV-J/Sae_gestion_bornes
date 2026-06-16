@@ -11,16 +11,28 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' }
 })
 
-// Intercepteur : log des erreurs réseau en console
+// Intercepteur : ajout du token JWT et log des erreurs
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
 api.interceptors.response.use(
   res => res,
   err => {
     console.error('[API Error]', err.response?.status, err.message)
+    // Si 401, on pourrait rediriger vers /login ici, mais le router s'en charge.
     return Promise.reject(err)
   }
 )
 
 export default {
+  // ── Authentification ─────────────────────────────────────────
+  login: (identifiant, mot_de_passe) => api.post('/auth/login', { identifiant, mot_de_passe }),
+
   // ── Bornes ──────────────────────────────────────────────────
   getBornes: ()              => api.get('/bornes'),
   getBorne:  id              => api.get(`/bornes/${id}`),

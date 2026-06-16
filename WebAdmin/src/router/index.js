@@ -32,6 +32,12 @@ const routes = [
     meta: { title: 'Livreurs', icon: '🚚' }
   },
   {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/views/LoginView.vue'),
+    meta: { title: 'Connexion', requiresAuth: false }
+  },
+  {
     path: '/logs',
     name: 'Logs',
     component: () => import('@/views/LogsView.vue'),
@@ -42,6 +48,20 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+// Protection des routes
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('token')
+  const requiresAuth = to.meta.requiresAuth !== false
+
+  if (requiresAuth && !token) {
+    next('/login')
+  } else if (to.path === '/login' && token) {
+    next('/')
+  } else {
+    next()
+  }
 })
 
 // Mise à jour du titre de la page
