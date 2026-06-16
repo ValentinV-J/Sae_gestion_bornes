@@ -1,51 +1,48 @@
 const Livreur = require('../models/Livreur');
+const { sendSuccess, sendError } = require('../utils/response');
 
 // GET /api/livreurs
-// Retourne la liste de tous les livreurs autorisés.
 exports.getAllLivreurs = async (req, res) => {
   try {
     const livreurs = await Livreur.find();
-    res.status(200).json(livreurs);
+    return sendSuccess(res, livreurs);
   } catch (err) {
-    res.status(500).json({ error: 'Erreur serveur.', details: err.message });
+    return sendError(res, `Erreur serveur : ${err.message}`, 500);
   }
 };
 
 // POST /api/livreurs
-// Enregistre un nouveau livreur avec son badge RFID.
 exports.createLivreur = async (req, res) => {
   try {
     const livreur = new Livreur(req.body);
     const saved = await livreur.save();
-    res.status(201).json(saved);
+    return sendSuccess(res, saved, 201);
   } catch (err) {
-    res.status(400).json({ error: 'Données invalides.', details: err.message });
+    return sendError(res, `Données invalides : ${err.message}`, 400);
   }
 };
 
 // PUT /api/livreurs/:id
-// Modifie les informations d'un livreur (nom, badge, statut actif).
 exports.updateLivreur = async (req, res) => {
   try {
     const livreur = await Livreur.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
     });
-    if (!livreur) return res.status(404).json({ error: 'Livreur introuvable.' });
-    res.status(200).json(livreur);
+    if (!livreur) return sendError(res, 'Livreur introuvable.', 404);
+    return sendSuccess(res, livreur);
   } catch (err) {
-    res.status(400).json({ error: 'Données invalides.', details: err.message });
+    return sendError(res, `Données invalides : ${err.message}`, 400);
   }
 };
 
 // DELETE /api/livreurs/:id
-// Supprime un livreur (son badge RFID ne sera plus accepté par les bornes).
 exports.deleteLivreur = async (req, res) => {
   try {
     const livreur = await Livreur.findByIdAndDelete(req.params.id);
-    if (!livreur) return res.status(404).json({ error: 'Livreur introuvable.' });
-    res.status(204).send(); // 204 No Content = succès sans corps de réponse
+    if (!livreur) return sendError(res, 'Livreur introuvable.', 404);
+    return sendSuccess(res, 'Livreur supprimé avec succès.', 200);
   } catch (err) {
-    res.status(500).json({ error: 'Erreur serveur.', details: err.message });
+    return sendError(res, `Erreur serveur : ${err.message}`, 500);
   }
 };

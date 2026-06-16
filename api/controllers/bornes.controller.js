@@ -1,47 +1,56 @@
 const Borne = require('../models/Borne');
+const { sendSuccess, sendError } = require('../utils/response');
 
 // GET /api/bornes
-// Retourne toutes les bornes avec leurs casiers et leurs états.
 exports.getAllBornes = async (req, res) => {
   try {
     const bornes = await Borne.find();
-    res.status(200).json(bornes);
+    return sendSuccess(res, bornes);
   } catch (err) {
-    res.status(500).json({ error: 'Erreur serveur.', details: err.message });
+    return sendError(res, `Erreur serveur : ${err.message}`, 500);
   }
 };
 
 // GET /api/bornes/:id
-// Retourne une borne spécifique par son ObjectId MongoDB.
 exports.getBorneById = async (req, res) => {
   try {
     const borne = await Borne.findById(req.params.id);
-    if (!borne) return res.status(404).json({ error: 'Borne introuvable.' });
-    res.status(200).json(borne);
+    if (!borne) return sendError(res, 'Borne introuvable.', 404);
+    return sendSuccess(res, borne);
   } catch (err) {
-    res.status(500).json({ error: 'Erreur serveur.', details: err.message });
+    return sendError(res, `Erreur serveur : ${err.message}`, 500);
   }
 };
 
 // POST /api/bornes
-// Crée une nouvelle borne. Les casiers doivent être envoyés dans le body.
 exports.createBorne = async (req, res) => {
   try {
     const borne = new Borne(req.body);
     const saved = await borne.save();
-    res.status(201).json(saved);
+    return sendSuccess(res, saved, 201);
   } catch (err) {
-    res.status(400).json({ error: 'Données invalides.', details: err.message });
+    return sendError(res, `Données invalides : ${err.message}`, 400);
   }
 };
 
-// PUT /api/bornes/:id/settings
-// Met à jour les paramètres A, B, X, Y d'une borne.
-// Passe needs_update à true pour que le serveur Java transmette les nouveaux réglages au µC.
+// PUT /api/bornes/:id
+exports.updateBorne = async (req, res) => {
+  try {
+    const borne = await Borne.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    });
+    if (!borne) return sendError(res, 'Borne introuvable.', 404);
+    return sendSuccess(res, borne);
+  } catch (err) {
+    return sendError(res, `Données invalides : ${err.message}`, 400);
+  }
+};
+
+// PUT /api/bornes/:id/settings — Met à jour A,B,X,Y et active le flag needs_update
 exports.updateSettings = async (req, res) => {
   try {
     const { delai_A, delai_B, delai_X, delai_Y } = req.body;
-
     const borne = await Borne.findByIdAndUpdate(
       req.params.id,
       {
@@ -50,30 +59,14 @@ exports.updateSettings = async (req, res) => {
           'parametres_attente.delai_B': delai_B,
           'parametres_attente.delai_X': delai_X,
           'parametres_attente.delai_Y': delai_Y,
-          'parametres_attente.needs_update': true, // Signal pour le serveur Java
+          'parametres_attente.needs_update': true,
         }
       },
       { new: true, runValidators: true }
     );
-
-    if (!borne) return res.status(404).json({ error: 'Borne introuvable.' });
-    res.status(200).json(borne);
+    if (!borne) return sendError(res, 'Borne introuvable.', 404);
+    return sendSuccess(res, borne);
   } catch (err) {
-    res.status(400).json({ error: 'Données invalides.', details: err.message });
-  }
-};
-
-// PUT /api/bornes/:id
-// Modifie les infos générales d'une borne (nom, adresse).
-exports.updateBorne = async (req, res) => {
-  try {
-    const borne = await Borne.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
-    if (!borne) return res.status(404).json({ error: 'Borne introuvable.' });
-    res.status(200).json(borne);
-  } catch (err) {
-    res.status(400).json({ error: 'Données invalides.', details: err.message });
+    return sendError(res, `Données invalides : ${err.message}`, 400);
   }
 };
