@@ -15,16 +15,17 @@
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>Société</th><th>ID Badge RFID</th><th>Actions</th></tr>
+            <tr><th>Nom & Prénom</th><th>Société</th><th>ID Badge RFID</th><th>Actions</th></tr>
           </thead>
           <tbody>
             <tr v-if="livreurs.length === 0">
-              <td colspan="3" style="text-align:center;color:var(--text-muted);padding:32px">
+              <td colspan="4" style="text-align:center;color:var(--text-muted);padding:32px">
                 Aucun livreur enregistré
               </td>
             </tr>
             <tr v-for="l in livreurs" :key="l._id">
-              <td><strong>{{ l.societe }}</strong></td>
+              <td><strong>{{ l.nom }} {{ l.prenom }}</strong></td>
+              <td>{{ l.societe }}</td>
               <td class="text-mono">{{ l.id_badge_rfid }}</td>
               <td>
                 <button class="btn btn--danger btn--sm" @click="confirmDelete(l)">🗑 Supprimer</button>
@@ -40,16 +41,24 @@
       <div class="modal">
         <div class="modal-title">Ajouter un livreur</div>
         <div class="form-group">
+          <label class="form-label">Nom *</label>
+          <input class="input" v-model="newLivreur.nom" placeholder="Ex: Dupont" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Prénom</label>
+          <input class="input" v-model="newLivreur.prenom" placeholder="Ex: Jean" />
+        </div>
+        <div class="form-group">
           <label class="form-label">Société</label>
           <input class="input" v-model="newLivreur.societe" placeholder="Ex: Chronopost" />
         </div>
         <div class="form-group">
-          <label class="form-label">ID Badge RFID</label>
+          <label class="form-label">ID Badge RFID *</label>
           <input class="input" v-model="newLivreur.id_badge_rfid" placeholder="Ex: A1B2C3D4" style="font-family:monospace" />
         </div>
         <div class="modal-actions">
           <button class="btn btn--outline" @click="showAddModal = false">Annuler</button>
-          <button class="btn btn--primary" :disabled="saving || !newLivreur.societe || !newLivreur.id_badge_rfid" @click="addLivreur">
+          <button class="btn btn--primary" :disabled="saving || !newLivreur.nom || !newLivreur.id_badge_rfid" @click="addLivreur">
             {{ saving ? 'Ajout…' : 'Ajouter' }}
           </button>
         </div>
@@ -88,10 +97,10 @@ const showAddModal = ref(false)
 const toDelete    = ref(null)
 const saving      = ref(false)
 const formError   = ref(null)
-const newLivreur  = reactive({ societe: '', id_badge_rfid: '' })
+const newLivreur  = reactive({ nom: '', prenom: '', societe: '', id_badge_rfid: '' })
 
 function openAdd() {
-  newLivreur.societe = ''; newLivreur.id_badge_rfid = ''
+  newLivreur.nom = ''; newLivreur.prenom = ''; newLivreur.societe = ''; newLivreur.id_badge_rfid = ''
   formError.value = null
   showAddModal.value = true
 }

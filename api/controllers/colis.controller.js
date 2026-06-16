@@ -17,6 +17,16 @@ exports.getColisByUuid = async (req, res) => {
   }
 };
 
+// GET /api/colis (Admin Web)
+exports.getAllColis = async (req, res) => {
+  try {
+    const colis = await Colis.find().sort({ createdAt: -1 });
+    return sendSuccess(res, colis);
+  } catch (err) {
+    return sendError(res, `Erreur serveur : ${err.message}`, 500);
+  }
+};
+
 // PATCH /api/colis/:uuid/scan
 exports.scanColis = async (req, res) => {
   try {

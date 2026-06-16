@@ -36,7 +36,7 @@ export default {
   // ── Bornes ──────────────────────────────────────────────────
   getBornes: ()              => api.get('/bornes'),
   getBorne:  id              => api.get(`/bornes/${id}`),
-  updateParametres: (id, p)  => api.patch(`/bornes/${id}/parametres`, p),
+  updateParametres: (id, p)  => api.put(`/bornes/${id}/settings`, p),
 
   // ── Colis ───────────────────────────────────────────────────
   getColis:      (params)    => api.get('/colis', { params }),
