@@ -7,16 +7,21 @@ const {
   createBorne,
   updateBorne,
   updateSettings,
+  findCasierAlternatif,
+  updateCasierEtat
 } = require('../controllers/bornes.controller');
 
-// Toutes les routes bornes sont protégées (token JWT requis)
-router.get('/',           protect, getAllBornes);
+// GET /api/bornes est NON PROTÉGÉ (utilisé par le Serveur Java interne)
+router.get('/',           getAllBornes);
 router.get('/:id',        protect, getBorneById);
 router.post('/',          protect, restrictTo('ADMIN'), createBorne);
 router.put('/:id',        protect, restrictTo('ADMIN'), updateBorne);
 
+// Routes internes Serveur Java
+router.post('/:id/casier-alternatif', findCasierAlternatif);
+router.patch('/:id/casiers/:numero', updateCasierEtat);
+
 // Route dédiée pour mettre à jour les paramètres µC (A, B, X, Y) d'une borne
-// Accessible à l'ADMIN et au TECHNICIEN
 router.put('/:id/settings', protect, updateSettings);
 
 module.exports = router;
