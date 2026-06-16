@@ -50,7 +50,7 @@ class ThreadServer extends Thread {
     public void run() {
         try {
             br = new BufferedReader(new InputStreamReader(sock.getInputStream()));
-            ps = new PrintStream(sock.getOutputStream());
+            ps = new PrintStream(sock.getOutputStream(), true); // true = autoFlush !
         } catch (IOException e) {
             System.err.println("[Thread " + idThread + "] Cannot create streams: " + e.getMessage());
             return;
