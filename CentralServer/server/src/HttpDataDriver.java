@@ -104,7 +104,7 @@ public class HttpDataDriver implements DataDriver {
         if (err != null) return null;
         Document data = (Document) doc.get("data");
         if (data == null) return null;
-        return data.getObjectId("_id");
+        return new ObjectId(data.getString("_id"));
     }
 
     public synchronized ObjectId getLivreurIdByRfid(String id_badge_rfid) {
@@ -113,7 +113,7 @@ public class HttpDataDriver implements DataDriver {
         if (err != null) return null;
         Document data = (Document) doc.get("data");
         if (data == null) return null;
-        return data.getObjectId("_id");
+        return new ObjectId(data.getString("_id"));
     }
 
     // -------------------------------------------------------------------------
