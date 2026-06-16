@@ -45,7 +45,7 @@ public interface DataDriver {
      * Marks the colis as RETIRE.
      * Returns "OK" or "ERR ..."
      */
-    String marquerColisRetire(String uuid);
+    String marquerColisRetire(String uuid, String queryString);
 
     // --- Casiers / Problèmes ---
 

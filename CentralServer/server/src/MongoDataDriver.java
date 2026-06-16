@@ -153,7 +153,7 @@ public class MongoDataDriver implements DataDriver {
         return "OK " + c.getCasier_numero() + " " + c.getId();
     }
 
-    public synchronized String marquerColisRetire(String uuid) {
+    public synchronized String marquerColisRetire(String uuid, String queryString) {
         String now = LocalDateTime.now().toString();
         // Get colis first to know the casier
         Colis c = colis.find(eq("_id", uuid)).first();

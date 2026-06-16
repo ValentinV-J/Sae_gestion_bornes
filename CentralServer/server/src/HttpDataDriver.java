@@ -83,7 +83,9 @@ public class HttpDataDriver implements DataDriver {
         if (errorField != null) {
             int errorCode = (errorField instanceof Integer) ? (Integer) errorField : 0;
             if (errorCode != 0) {
-                return "ERR " + doc.getString("message");
+                String msg = doc.getString("message");
+                if (msg == null) msg = doc.getString("data");
+                return "ERR " + msg;
             }
         }
         // Also handle standard HTTP error bodies
@@ -169,8 +171,9 @@ public class HttpDataDriver implements DataDriver {
         return "OK " + data.getInteger("casier_numero") + " " + data.getString("uuid");
     }
 
-    public synchronized String marquerColisRetire(String uuid) {
-        Document doc = patchRequest("/colis/" + uuid + "/retire", "{}");
+    public synchronized String marquerColisRetire(String uuid, String queryString) {
+        String query = queryString != null ? queryString : "";
+        Document doc = patchRequest("/colis/" + uuid + "/retire" + query, "{}");
         String err = checkError(doc);
         if (err != null) return err;
         return "OK";

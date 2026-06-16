@@ -271,7 +271,7 @@ class ThreadServer extends Thread {
             // The best approach: find by borneId + casier_numero + statut=DEPOSE
             // For HTTP, the API needs a dedicated endpoint
             // We pass UUID="unknown" and let the API figure it out by borneId+casier
-            answer = exchanger.getHttpDriver().marquerColisRetire("?borne_id=" + borneId.toHexString()
+            answer = exchanger.getHttpDriver().marquerColisRetire("unknown", "?borne_id=" + borneId.toHexString()
                     + "&casier_numero=" + casier_numero);
             // String answer = exchanger.getMongoDriver().marquerColisRetire(...);
             logAction = "RETRAIT_CONFIRME";
@@ -350,7 +350,7 @@ class ThreadServer extends Thread {
 
         if ("retrait".equals(contexte)) {
             // Package was probably taken — mark as RETIRE
-            String answer = exchanger.getHttpDriver().marquerColisRetire("?borne_id=" + borneId.toHexString()
+            String answer = exchanger.getHttpDriver().marquerColisRetire("unknown", "?borne_id=" + borneId.toHexString()
                     + "&casier_numero=" + casier_numero);
             System.out.println("[Thread " + idThread + "] Auto-RETIRE: " + answer);
             // Also mark casier as free (client may have left with the package)
