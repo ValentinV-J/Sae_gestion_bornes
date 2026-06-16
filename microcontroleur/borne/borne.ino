@@ -408,16 +408,16 @@ int lireChiffreIR() {
   Serial.println(irResultat.decode_type);
 
   switch (valeur) {
-    case 0xFF6897: return 0;
-    case 0xFF30CF: return 1;
-    case 0xFF18E7: return 2;
-    case 0xFF7A85: return 3;
-    case 0xFF10EF: return 4;
-    case 0xFF38C7: return 5;
-    case 0xFF5AA5: return 6;
-    case 0xFF42BD: return 7;
-    case 0xFF4AB5: return 8;
-    case 0xFF52AD: return 9;
+    case 0xFF9867:   return 0;
+    case 0x47221E2C: return 1;
+    case 0x3CE00EBC: return 2;
+    case 0xB5A7E1D7: return 3;
+    case 0xBD3B1277: return 4;
+    case 0x6CD5E3A2: return 5;
+    case 0xEA915C77: return 6;
+    case 0xFFE01F:   return 7;
+    case 0xFFA857:   return 8;
+    case 0xFF906F:   return 9;
     default:
       Serial.println("   ⚠️  Code non mappé — mets à jour le switch avec cette valeur !");
       return -1;
