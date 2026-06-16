@@ -18,6 +18,7 @@ mongoose.connect(process.env.MONGO_URI)
 // --- Routes ---
 app.use('/api/auth',      require('./routes/auth.routes'));
 app.use('/api/bornes',    require('./routes/bornes.routes'));
+app.use('/api/colis',     require('./routes/colis.routes'));
 app.use('/api/livreurs',  require('./routes/livreurs.routes'));
 app.use('/api/logs',      require('./routes/logs.routes'));
 

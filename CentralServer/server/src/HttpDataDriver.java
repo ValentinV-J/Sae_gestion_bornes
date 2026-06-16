@@ -139,7 +139,14 @@ public class HttpDataDriver implements DataDriver {
         if (err != null) return err;
         Document data = (Document) doc.get("data");
         if (data == null) return "ERR aucun colis en attente de depot";
-        return "OK " + data.getInteger("casier_numero") + " " + data.getString("uuid");
+        
+        String res = "OK " + data.getInteger("casier_numero") + " " + data.getString("uuid");
+        Document params = (Document) data.get("parametres");
+        if (params != null) {
+            res += " " + params.getInteger("A") + " " + params.getInteger("B") 
+                + " " + params.getInteger("X") + " " + params.getInteger("Y");
+        }
+        return res;
     }
 
     public synchronized String marquerColisDepose(String uuid, ObjectId livreurId) {

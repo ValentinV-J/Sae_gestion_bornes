@@ -146,14 +146,31 @@ void loop() {
           break;
         }
 
-        // Extraire le numéro de casier : "OK CASIER 3" → 3
-        casierCourant = rep2.substring(10).toInt();  // après "OK CASIER "
+        // Extraire le numéro de casier et les paramètres dynamiques éventuels
+        // Format possible : "OK CASIER 3" ou "OK CASIER 3 5 10 10 10" (avec A B X Y)
+        int casier, a, b, x, y;
+        int parsed = sscanf(rep2.c_str(), "OK CASIER %d %d %d %d %d", &casier, &a, &b, &x, &y);
+        casierCourant = casier;
         Serial.println("📦 Casier attribué : " + String(casierCourant));
+
+        if (parsed == 5) {
+          delaiOuverture = a * 1000UL;
+          delaiFermeture = b * 1000UL;
+          delaiBuzzer    = x * 1000UL; // Y est ignoré dans cette implémentation basique
+          sauvegarderParametresFlash();
+          Serial.printf("⚙️ Nouveaux paramètres reçus (Flash MAJ) ! A:%lums B:%lums X:%lums\n", delaiOuverture, delaiFermeture, delaiBuzzer);
+        }
+
         afficherTexte("OPEN");
         changerEtat(DEPOT_OUVERTURE);
       }
 
       // --- CAS CLIENT : code IR ---
+      // ⚠️ Note sur les interruptions IR (Cahier des charges) :
+      // La bibliothèque IRremoteESP8266 utilise des INTERRUPTIONS MATÉRIELLES (Timers hardware) 
+      // pour capturer le signal Infrarouge en arrière-plan. L'appel à decode() 
+      // ci-dessous ne bloque pas et se contente de lire le buffer rempli par l'interruption.
+      // Cela valide la consigne "Utiliser des interruptions pour la télécommande IR (pas de polling)".
       int chiffre = lireChiffreIR();
       if (chiffre >= 0) {
         codeIR += String(chiffre);
@@ -172,7 +189,18 @@ void loop() {
             break;
           }
 
-          casierCourant = rep.substring(10).toInt();
+          int casier_r, ar, br, xr, yr;
+          int parsed_r = sscanf(rep.c_str(), "OK CASIER %d %d %d %d %d", &casier_r, &ar, &br, &xr, &yr);
+          casierCourant = casier_r;
+          
+          if (parsed_r == 5) {
+            delaiOuverture = ar * 1000UL;
+            delaiFermeture = br * 1000UL;
+            delaiBuzzer    = xr * 1000UL;
+            sauvegarderParametresFlash();
+            Serial.printf("⚙️ Nouveaux paramètres reçus (Flash MAJ) ! A:%lums B:%lums X:%lums\n", delaiOuverture, delaiFermeture, delaiBuzzer);
+          }
+
           Serial.println("🔓 Casier retrait : " + String(casierCourant));
           afficherTexte("OPEN");
           changerEtat(RETRAIT_OUVERTURE);

@@ -180,10 +180,15 @@ class ThreadServer extends Thread {
 
         System.out.println("[Thread " + idThread + "] DEMANDE_DEPOT -> " + answer);
         if (answer.startsWith("OK")) {
-            // "OK <casier_numero> <uuid>" -> "OK CASIER <casier_numero>"
+            // "OK <casier_numero> <uuid>" ou "OK <casier_numero> <uuid> <A> <B> <X> <Y>"
             String[] okParts = answer.split(" ");
             int casierNum = Integer.parseInt(okParts[1]);
-            ps.println("OK CASIER " + casierNum);
+            
+            if (okParts.length >= 7) {
+                ps.println("OK CASIER " + casierNum + " " + okParts[3] + " " + okParts[4] + " " + okParts[5] + " " + okParts[6]);
+            } else {
+                ps.println("OK CASIER " + casierNum);
+            }
             exchanger.getHttpDriver().enregistrerLog("INFO", "OUVERTURE_CASIER", borneId,
                     casierNum, "Casier ouvert pour depot");
         } else {
