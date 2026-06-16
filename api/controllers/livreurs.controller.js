@@ -11,6 +11,17 @@ exports.getAllLivreurs = async (req, res) => {
   }
 };
 
+// GET /api/livreurs/rfid/:rfid
+exports.getLivreurByRfid = async (req, res) => {
+  try {
+    const livreur = await Livreur.findOne({ id_badge_rfid: req.params.rfid });
+    if (!livreur) return sendError(res, 'Badge RFID inconnu', 404);
+    return sendSuccess(res, livreur);
+  } catch (err) {
+    return sendError(res, `Erreur serveur : ${err.message}`, 500);
+  }
+};
+
 // POST /api/livreurs
 exports.createLivreur = async (req, res) => {
   try {

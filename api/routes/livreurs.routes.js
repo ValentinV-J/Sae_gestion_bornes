@@ -6,7 +6,11 @@ const {
   createLivreur,
   updateLivreur,
   deleteLivreur,
+  getLivreurByRfid
 } = require('../controllers/livreurs.controller');
+
+// GET /api/livreurs/rfid/:rfid — Pour le serveur Java
+router.get('/rfid/:rfid', getLivreurByRfid);
 
 // GET — Lecture accessible à tous les admins connectés
 router.get('/',     protect, getAllLivreurs);

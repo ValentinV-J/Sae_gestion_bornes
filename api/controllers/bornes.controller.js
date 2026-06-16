@@ -1,10 +1,18 @@
 const Borne = require('../models/Borne');
 const { sendSuccess, sendError } = require('../utils/response');
 
-// GET /api/bornes
+// GET /api/bornes (accepte ?nom=...)
 exports.getAllBornes = async (req, res) => {
   try {
-    const bornes = await Borne.find();
+    const filter = req.query.nom ? { nom: req.query.nom } : {};
+    // Si ?nom est fourni, on renvoie uniquement la borne (objet unique pour compatibilité Java) ou null
+    if (req.query.nom) {
+      const borne = await Borne.findOne(filter);
+      if (!borne) return sendError(res, 'Borne introuvable', 404);
+      return sendSuccess(res, borne);
+    }
+    
+    const bornes = await Borne.find(filter);
     return sendSuccess(res, bornes);
   } catch (err) {
     return sendError(res, `Erreur serveur : ${err.message}`, 500);
