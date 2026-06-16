@@ -23,10 +23,11 @@
       </nav>
 
       <div class="sidebar-footer">
-        <div class="api-status">
+        <div class="api-status" style="margin-bottom: 12px;">
           <span :class="['status-dot', apiOk ? 'status-dot--ok' : 'status-dot--err']"></span>
           <span class="status-label">{{ apiOk ? 'API connectée' : 'API hors ligne' }}</span>
         </div>
+        <button class="btn btn--outline btn--sm" style="width: 100%;" @click="logout">Se déconnecter</button>
       </div>
     </aside>
 
@@ -38,10 +39,11 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 
 const route = useRoute()
+const router = useRouter()
 const apiOk = ref(false)
 
 const navItems = [
@@ -51,6 +53,11 @@ const navItems = [
   { name: 'livreurs',  path: '/livreurs', icon: '🚚', label: 'Livreurs'   },
   { name: 'logs',      path: '/logs',     icon: '📋', label: 'Logs'       },
 ]
+
+function logout() {
+  localStorage.removeItem('token')
+  router.push('/login')
+}
 
 onMounted(async () => {
   try {
