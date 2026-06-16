@@ -86,10 +86,10 @@ exports.findCasierAlternatif = async (req, res) => {
     const borne = await Borne.findById(req.params.id);
     if (!borne) return sendError(res, 'Borne introuvable', 404);
 
-    // Marquer le defaillant comme HS
+    // Marquer le defaillant comme en erreur d'ouverture
     const defaillant = borne.casiers.find(c => c.numero === casier_defaillant);
     if (defaillant) {
-      defaillant.etat_materiel = 'HS';
+      defaillant.etat_materiel = 'ERREUR_OUVERTURE';
       defaillant.etat_occupation = 'VIDE';
     }
 
