@@ -67,8 +67,8 @@ class ThreadServer extends Thread {
         if (nomBorne.equals(cachedBorneName) && cachedBorneId != null) {
             return cachedBorneId;
         }
-        // Prefer MongoDriver for this lookup (no HTTP route needed for simple lookup)
-        ObjectId id = exchanger.getMongoDriver().getBorneIdByNom(nomBorne);
+        // Use HTTP driver
+        ObjectId id = exchanger.getHttpDriver().getBorneIdByNom(nomBorne);
         if (id != null) {
             cachedBorneName = nomBorne;
             cachedBorneId = id;
@@ -80,8 +80,7 @@ class ThreadServer extends Thread {
         if (rfid.equals(cachedRfid) && cachedLivreurId != null) {
             return cachedLivreurId;
         }
-        ObjectId id = exchanger.getMongoDriver().getLivreurIdByRfid(rfid);
-        if (id == null) id = exchanger.getHttpDriver().getLivreurIdByRfid(rfid);
+        ObjectId id = exchanger.getHttpDriver().getLivreurIdByRfid(rfid);
         if (id != null) {
             cachedRfid = rfid;
             cachedLivreurId = id;
