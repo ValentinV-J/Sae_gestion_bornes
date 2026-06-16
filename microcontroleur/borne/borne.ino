@@ -199,22 +199,22 @@ void loop() {
     }
 
     // ──────────────────────────────────────────
-    // case DEPOT_FERMETURE: {
-    //   if (!switchActionne()) {
-    //     Serial.println("✅ Porte refermée → CASIER_FERME depot");
-    //     envoyerRequete("CASIER_FERME " + String(BORNE_NOM) + " "
-    //                    + String(casierCourant) + " depot");
-    //     afficherTexte("donE");
-    //     delay(2000);
-    //     afficherTexte("----");
-    //     changerEtat(IDLE);
-    //   } else if (now - tsEtat >= delaiFermeture) {
-    //     Serial.println("⏱️  Timeout fermeture → Buzzer ON");
-    //     activerBuzzer(true);
-    //     changerEtat(DEPOT_BUZZER);
-    //   }
-    //   break;
-    //}
+     case DEPOT_FERMETURE: {
+       if (!switchActionne()) {
+         Serial.println("✅ Porte refermée → CASIER_FERME depot");
+         envoyerRequete("CASIER_FERME " + String(BORNE_NOM) + " "
+                        + String(casierCourant) + " depot");
+         afficherTexte("donE");
+         delay(2000);
+         afficherTexte("----");
+         changerEtat(IDLE);
+       } else if (now - tsEtat >= delaiFermeture) {
+         Serial.println("⏱️  Timeout fermeture → Buzzer ON");
+         activerBuzzer(true);
+         changerEtat(DEPOT_BUZZER);
+       }
+       break;
+    }
 
     // ──────────────────────────────────────────
     case DEPOT_BUZZER: {
