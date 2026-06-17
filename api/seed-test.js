@@ -21,11 +21,11 @@ const seedData = async () => {
     await livreur.save();
     console.log(`📦 Livreur de test créé (Badge: ${rfid})`);
 
-    // 2. Créer la borne "Borne1" avec 3 casiers vides
-    await Borne.deleteMany({ nom: 'Borne1' });
+    // 2. Créer la borne "Borne Belfort" avec 3 casiers vides
+    await Borne.deleteMany({ nom: 'Borne Belfort' });
     const borne = new Borne({
       identifiant: 'B01',
-      nom: 'Borne1',
+      nom: 'Borne Belfort',
       adresse: 'IUT Belfort',
       casiers: [
         { numero: 1, taille: 'S', etat_occupation: 'VIDE', etat_materiel: 'OK' },
@@ -34,7 +34,7 @@ const seedData = async () => {
       ]
     });
     const savedBorne = await borne.save();
-    console.log('🏗️ Borne de test "Borne1" créée avec 3 casiers vides !');
+    console.log('🏗️ Borne de test "Borne Belfort" créée avec 3 casiers vides !');
 
     // 3. Créer un colis virtuel (comme s'il avait été scanné par l'app mobile)
     const Colis = require('./models/Colis');

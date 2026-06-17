@@ -35,10 +35,10 @@ exports.resetDatabase = async (req, res) => {
       fakeLivreurs.push(l);
     }
 
-    // 4. Recréer la Borne1 obligatoire pour la maquette
-    const borneTest = await Borne.create({
+    // 4. Recréer la Borne1 obligatoire pour la maquette (renommée Borne Belfort)
+    const borneTest = new Borne({
       identifiant: 'B01',
-      nom: 'Borne1',
+      nom: 'Borne Belfort',
       adresse: 'IUT Belfort',
       casiers: [
         { numero: 1, taille: 'S', etat_occupation: 'VIDE', etat_materiel: 'OK' },
@@ -46,20 +46,22 @@ exports.resetDatabase = async (req, res) => {
         { numero: 3, taille: 'L', etat_occupation: 'VIDE', etat_materiel: 'OK' }
       ]
     });
+    await borneTest.save();
 
     // 5. Créer des bornes fictives
     const fakeBornes = [];
     const villes = ['Paris', 'Lyon', 'Marseille', 'Strasbourg', 'Lille'];
     for (let i = 0; i < 5; i++) {
-      const b = await Borne.create({
+      const b = new Borne({
         identifiant: `B0${i+2}`,
-        nom: `Borne-${villes[i]}`,
+        nom: `Borne ${villes[i]}`,
         adresse: `Gare de ${villes[i]}`,
         casiers: [
           { numero: 1, taille: 'M', etat_occupation: 'VIDE', etat_materiel: 'OK' },
           { numero: 2, taille: 'L', etat_occupation: 'VIDE', etat_materiel: 'OK' }
         ]
       });
+      await b.save();
       fakeBornes.push(b);
     }
 
@@ -89,8 +91,29 @@ exports.resetDatabase = async (req, res) => {
       else if (randStatut > 0.9) statut = 'SCAN_MOBILE_OK';
       else if (randStatut > 0.95) statut = 'ATTENTE_DEPOT';
 
-      const randomBorne = allBornes[Math.floor(Math.random() * allBornes.length)];
+      let randomBorne = allBornes[Math.floor(Math.random() * allBornes.length)];
       const randomLivreur = allLivreurs[Math.floor(Math.random() * allLivreurs.length)];
+      
+      let casier_numero = null;
+      let code_retrait = null;
+
+      if (statut === 'DEPOSE') {
+        // Trouver un casier vide dans cette borne
+        const casierVide = randomBorne.casiers.find(c => c.etat_occupation === 'VIDE');
+        if (casierVide) {
+          casierVide.etat_occupation = 'OCCUPE';
+          casier_numero = casierVide.numero;
+          code_retrait = Math.floor(1000 + Math.random() * 9000).toString();
+          // Mettre à jour la borne en BDD
+          await Borne.updateOne(
+            { _id: randomBorne._id, "casiers.numero": casier_numero },
+            { $set: { "casiers.$.etat_occupation": "OCCUPE" } }
+          );
+        } else {
+          // Plus de place, on le force en RETIRE
+          statut = 'RETIRE';
+        }
+      }
 
       await Colis.create({
         uuid: `fake-uuid-${i}`,
@@ -98,6 +121,8 @@ exports.resetDatabase = async (req, res) => {
         statut: statut,
         livreur_id: randomLivreur._id,
         borne_id: randomBorne._id,
+        casier_numero: casier_numero,
+        code_retrait: code_retrait,
         date_depot: (statut === 'DEPOSE' || statut === 'RETIRE') ? pastDate : null,
         date_retrait: (statut === 'RETIRE') ? new Date(pastDate.getTime() + 86400000) : null,
         createdAt: new Date(pastDate.getTime() - 86400000)
