@@ -27,6 +27,13 @@ const seedData = async () => {
       identifiant: 'B01',
       nom: 'Borne_Belfort',
       adresse: 'IUT Belfort',
+      parametres_attente: {
+        delai_A: 10,
+        delai_B: 10,
+        delai_X: 10,
+        delai_Y: 10,
+        needs_update: true
+      },
       casiers: [
         { numero: 1, taille: 'S', etat_occupation: 'VIDE', etat_materiel: 'OK' },
         { numero: 2, taille: 'M', etat_occupation: 'VIDE', etat_materiel: 'OK' },
