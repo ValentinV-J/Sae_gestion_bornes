@@ -34,6 +34,7 @@ app.use((req, res) => {
 
 // --- Démarrage du serveur ---
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 Serveur démarré sur http://localhost:${PORT}`);
+const HOST = process.env.HOST || '0.0.0.0';
+app.listen(PORT, HOST, () => {
+  console.log(`Serveur demarre sur http://${HOST}:${PORT}`);
 });
