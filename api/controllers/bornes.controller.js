@@ -58,7 +58,8 @@ exports.updateBorne = async (req, res) => {
 // PUT /api/bornes/:id/settings — Met à jour A,B,X,Y et active le flag needs_update
 exports.updateSettings = async (req, res) => {
   try {
-    const { delai_A, delai_B, delai_X, delai_Y } = req.body;
+    const params = req.body.parametres_attente || req.body;
+    const { delai_A, delai_B, delai_X, delai_Y } = params;
     const borne = await Borne.findByIdAndUpdate(
       req.params.id,
       {
