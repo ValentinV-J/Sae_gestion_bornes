@@ -41,7 +41,7 @@ const seedData = async () => {
     await Colis.deleteMany({});
     const colis = new Colis({
       uuid: 'test-colis-uuid-123',
-      email_client: 'ton.email@gmail.com', // Remplacer par ton vrai e-mail
+      email_client: 'xpbot5695@gmail.com', // Adresse de réception des tests
       statut: 'ATTENTE_DEPOT',
       livreur_id: livreur._id,
       borne_id: savedBorne._id
