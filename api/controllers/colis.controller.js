@@ -1,6 +1,7 @@
 const Colis = require('../models/Colis');
 const Borne = require('../models/Borne');
 const { sendSuccess, sendError } = require('../utils/response');
+const nodemailer = require('nodemailer');
 
 // ==========================================
 // ROUTES POUR LE MOBILE (Livreur)
@@ -121,6 +122,40 @@ exports.marquerColisDepose = async (req, res) => {
       { _id: colis.borne_id, "casiers.numero": colis.casier_numero },
       { $set: { "casiers.$.etat_occupation": "OCCUPE" } }
     );
+
+    // Envoi de l'e-mail si configuré et si l'e-mail client existe
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS && colis.email_client) {
+      try {
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
+          }
+        });
+
+        const mailOptions = {
+          from: process.env.EMAIL_USER,
+          to: colis.email_client,
+          subject: '📦 Votre colis a été livré !',
+          html: `
+            <div style="font-family: sans-serif; text-align: center; padding: 20px;">
+              <h2>Bonjour,</h2>
+              <p>Votre colis est disponible dans la borne.</p>
+              <p>Voici votre code secret de retrait :</p>
+              <h1 style="color: #4CAF50; font-size: 48px; letter-spacing: 5px;">${colis.code_retrait}</h1>
+              <p>Merci de le récupérer rapidement !</p>
+            </div>
+          `
+        };
+
+        await transporter.sendMail(mailOptions);
+        console.log(`📧 E-mail envoyé avec succès à ${colis.email_client}`);
+      } catch (mailErr) {
+        console.error('❌ Erreur lors de l\'envoi de l\'e-mail :', mailErr);
+        // On ne bloque pas la requête si l'email échoue
+      }
+    }
 
     return sendSuccess(res, { code_retrait: colis.code_retrait });
   } catch (err) {

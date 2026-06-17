@@ -14,6 +14,12 @@ const ColisSchema = new mongoose.Schema({
     default: uuidv4,
   },
 
+  // E-mail du client (obligatoire pour envoyer le code de retrait)
+  email_client: {
+    type: String,
+    required: true,
+  },
+
   // Cycle de vie complet du colis (voir Phase 2 pour le protocole des transitions)
   // ATTENTE_DEPOT   -> état initial, colis déclaré mais pas encore scanné
   // SCAN_MOBILE_OK  -> le livreur a scanné le QR code, en attente du badge sur la borne
