@@ -51,3 +51,4 @@ thumbs.db
 
 # Keep important project files tracked
 !pom.xml
+/MobileApp/.idea
