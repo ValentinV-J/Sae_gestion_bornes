@@ -52,5 +52,8 @@ export default {
   getLogs: (params)          => api.get('/logs', { params }),
 
   // ── Statistiques (agrégats côté API) ────────────────────────
-  getStats: ()               => api.get('/stats')
+  getStats: ()               => api.get('/stats'),
+
+  // ── Développement ───────────────────────────────────────────
+  resetDB: ()                => api.post('/dev/reset-db')
 }

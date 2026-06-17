@@ -63,7 +63,7 @@ function logout() {
 async function resetDB() {
   if (confirm("⚠️ Attention, cela va vider la base de données et générer des fausses données. Le colis de test sera préservé. Confirmer ?")) {
     try {
-      await api.apiClient.post('/dev/reset-db');
+      await api.resetDB();
       alert("✅ Base de données réinitialisée avec succès !");
       window.location.reload();
     } catch (err) {
