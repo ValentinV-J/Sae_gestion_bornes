@@ -24,12 +24,17 @@ exports.resetDatabase = async (req, res) => {
 
     // 3. Créer quelques faux livreurs pour les stats
     const fakeLivreurs = [];
-    const societes = ['Chronopost', 'Colissimo', 'UPS', 'DHL', 'FedEx'];
+    const societes = ['Chronopost', 'Colissimo', 'UPS', 'DHL', 'FedEx', 'DPD', 'Relais Colis'];
+    const prenoms = ['Lucas', 'Emma', 'Hugo', 'Chloé', 'Léo', 'Manon', 'Gabriel', 'Léa', 'Arthur', 'Camille'];
+    const noms = ['Martin', 'Bernard', 'Thomas', 'Petit', 'Robert', 'Richard', 'Durand', 'Dubois', 'Moreau', 'Laurent'];
+    
     for (let i = 0; i < 5; i++) {
+      const p = prenoms[Math.floor(Math.random() * prenoms.length)];
+      const n = noms[Math.floor(Math.random() * noms.length)];
       const l = await Livreur.create({
-        nom: `Nom${i}`,
-        prenom: `Prenom${i}`,
-        societe: societes[i % societes.length],
+        nom: n,
+        prenom: p,
+        societe: societes[Math.floor(Math.random() * societes.length)],
         id_badge_rfid: `FAKERFID${i}`
       });
       fakeLivreurs.push(l);
@@ -96,6 +101,11 @@ exports.resetDatabase = async (req, res) => {
       
       let casier_numero = null;
       let code_retrait = null;
+
+      // On force la Borne Belfort à être complètement vide pour la démo
+      if (statut === 'DEPOSE' && randomBorne.identifiant === 'B01') {
+        statut = 'RETIRE';
+      }
 
       if (statut === 'DEPOSE') {
         // Trouver un casier vide dans cette borne
