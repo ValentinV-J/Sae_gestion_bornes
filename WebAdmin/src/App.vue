@@ -27,6 +27,7 @@
           <span :class="['status-dot', apiOk ? 'status-dot--ok' : 'status-dot--err']"></span>
           <span class="status-label">{{ apiOk ? 'API connectée' : 'API hors ligne' }}</span>
         </div>
+        <button class="btn btn--outline btn--sm" style="width: 100%; margin-bottom: 12px; border-color: var(--danger); color: var(--danger);" @click="resetDB">🔄 Réinitialiser BDD</button>
         <button class="btn btn--outline btn--sm" style="width: 100%;" @click="logout">Se déconnecter</button>
       </div>
     </aside>
@@ -57,6 +58,18 @@ const navItems = [
 function logout() {
   localStorage.removeItem('token')
   router.push('/login')
+}
+
+async function resetDB() {
+  if (confirm("⚠️ Attention, cela va vider la base de données et générer des fausses données. Le colis de test sera préservé. Confirmer ?")) {
+    try {
+      await api.apiClient.post('/dev/reset-db');
+      alert("✅ Base de données réinitialisée avec succès !");
+      window.location.reload();
+    } catch (err) {
+      alert("❌ Erreur lors de la réinitialisation : " + err.message);
+    }
+  }
 }
 
 onMounted(async () => {

@@ -21,6 +21,7 @@ app.use('/api/bornes',    require('./routes/bornes.routes'));
 app.use('/api/colis',     require('./routes/colis.routes'));
 app.use('/api/livreurs',  require('./routes/livreurs.routes'));
 app.use('/api/logs',      require('./routes/logs.routes'));
+app.use('/api/dev',       require('./routes/dev.routes'));
 
 // --- Route par défaut (test rapide que l'API tourne) ---
 app.get('/', (req, res) => {
