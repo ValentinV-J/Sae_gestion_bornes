@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -28,6 +29,10 @@ import java.util.concurrent.Executors
  */
 class ScanActivity : AppCompatActivity() {
 
+    companion object {
+        private const val TAG = "ScanActivity"
+    }
+
     private lateinit var binding: ActivityScanBinding
     private lateinit var cameraExecutor: ExecutorService
     private lateinit var qrAnalyzer: QrCodeAnalyzer
@@ -36,8 +41,12 @@ class ScanActivity : AppCompatActivity() {
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) startCamera()
+        if (granted) {
+            Log.d(TAG, "Permission CAMERA accordee")
+            startCamera()
+        }
         else {
+            Log.w(TAG, "Permission CAMERA refusee")
             Toast.makeText(this, getString(R.string.camera_permission_denied), Toast.LENGTH_LONG).show()
             finish()
         }
@@ -47,21 +56,28 @@ class ScanActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityScanBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        Log.d(TAG, "onCreate: ecran scan initialise")
 
         cameraExecutor = Executors.newSingleThreadExecutor()
 
-        binding.btnCancel.setOnClickListener { finish() }
+        binding.btnCancel.setOnClickListener {
+            Log.d(TAG, "Action utilisateur: annulation scan")
+            finish()
+        }
 
         // Vérification permission
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
             == PackageManager.PERMISSION_GRANTED) {
+            Log.d(TAG, "Permission CAMERA deja accordee")
             startCamera()
         } else {
+            Log.d(TAG, "Permission CAMERA manquante, demande en cours")
             requestPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
 
     private fun startCamera() {
+        Log.d(TAG, "Initialisation CameraX")
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
         cameraProviderFuture.addListener({
@@ -91,7 +107,9 @@ class ScanActivity : AppCompatActivity() {
                     preview,
                     imageAnalysis
                 )
+                Log.d(TAG, "CameraX demarree: preview + imageAnalysis actifs")
             } catch (e: Exception) {
+                Log.e(TAG, "Erreur CameraX lors du bind: ${e.message}", e)
                 Toast.makeText(this, getString(R.string.camera_error, e.message), Toast.LENGTH_SHORT).show()
             }
 
@@ -99,6 +117,7 @@ class ScanActivity : AppCompatActivity() {
     }
 
     private fun onQrDetected(uuid: String) {
+        Log.i(TAG, "QR detecte: uuid=$uuid")
         // Affiche le UUID détecté pour feedback visuel
         binding.tvDetectedUuid.text = getString(R.string.uuid_detected, uuid)
         binding.tvInstruction.text  = getString(R.string.verifying)
@@ -107,6 +126,7 @@ class ScanActivity : AppCompatActivity() {
         val intent = Intent(this, DepotActivity::class.java).apply {
             putExtra(DepotActivity.EXTRA_UUID, uuid)
         }
+        Log.d(TAG, "Navigation: ouverture de DepotActivity avec uuid=$uuid")
         startActivity(intent)
         // On ne ferme PAS ici — retour possible via Back
         // Pour permettre un nouveau scan si erreur, l'analyzer se réactivera dans onResume
@@ -119,11 +139,13 @@ class ScanActivity : AppCompatActivity() {
             qrAnalyzer.reset()
             binding.tvDetectedUuid.text = ""
             binding.tvInstruction.text  = getString(R.string.scan_instruction)
+            Log.d(TAG, "onResume: scanner reinitialise")
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
         cameraExecutor.shutdown()
+        Log.d(TAG, "onDestroy: cameraExecutor ferme")
     }
 }

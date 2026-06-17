@@ -1,7 +1,8 @@
 package fr.iutbm.bornes.mobile.api
 
 import android.content.Context
-import fr.iutbm.bornes.mobile.BuildConfig
+import android.content.pm.ApplicationInfo
+import android.util.Log
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -18,6 +19,8 @@ import java.util.concurrent.TimeUnit
  */
 object ApiClient {
 
+    private const val TAG = "ApiClient"
+
     private const val PREFS_NAME = "bornes_prefs"
     private const val KEY_API_URL = "api_url"
     const val DEFAULT_API_URL = "http://10.0.2.2:3000/api/"
@@ -33,8 +36,11 @@ object ApiClient {
     fun getService(context: Context): ApiService {
         val baseUrl = getSavedUrl(context)
         if (retrofit == null || currentBaseUrl != baseUrl) {
-            retrofit = buildRetrofit(baseUrl)
+            Log.d(TAG, "Reconstruction Retrofit pour baseUrl=$baseUrl")
+            retrofit = buildRetrofit(context, baseUrl)
             currentBaseUrl = baseUrl
+        } else {
+            Log.v(TAG, "Reutilisation Retrofit existant pour baseUrl=$baseUrl")
         }
         return checkNotNull(retrofit).create(ApiService::class.java)
     }
@@ -49,14 +55,18 @@ object ApiClient {
             .edit()
             .putString(KEY_API_URL, url)
             .apply()
+        Log.i(TAG, "URL API sauvegardee: $url")
         // Force rebuild on next call
         retrofit = null
         currentBaseUrl = null
+        Log.d(TAG, "Cache Retrofit invalide")
     }
 
-    private fun buildRetrofit(baseUrl: String): Retrofit {
+    private fun buildRetrofit(context: Context, baseUrl: String): Retrofit {
+        val isDebug = (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        Log.d(TAG, "buildRetrofit: baseUrl=$baseUrl debug=$isDebug")
         val logging = HttpLoggingInterceptor().apply {
-            level = if (BuildConfig.DEBUG) {
+            level = if (isDebug) {
                 HttpLoggingInterceptor.Level.BODY
             } else {
                 HttpLoggingInterceptor.Level.NONE
