@@ -2,7 +2,7 @@ package fr.iutbm.bornes.mobile.api
 
 import android.content.Context
 import android.content.pm.ApplicationInfo
-import android.util.Log
+import fr.iutbm.bornes.mobile.utils.AppLogger
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -36,11 +36,11 @@ object ApiClient {
     fun getService(context: Context): ApiService {
         val baseUrl = getSavedUrl(context)
         if (retrofit == null || currentBaseUrl != baseUrl) {
-            Log.d(TAG, "Reconstruction Retrofit pour baseUrl=$baseUrl")
+            AppLogger.d(TAG, "Reconstruction Retrofit pour baseUrl=$baseUrl")
             retrofit = buildRetrofit(context, baseUrl)
             currentBaseUrl = baseUrl
         } else {
-            Log.v(TAG, "Reutilisation Retrofit existant pour baseUrl=$baseUrl")
+            AppLogger.v(TAG, "Reutilisation Retrofit existant pour baseUrl=$baseUrl")
         }
         return checkNotNull(retrofit).create(ApiService::class.java)
     }
@@ -55,16 +55,16 @@ object ApiClient {
             .edit()
             .putString(KEY_API_URL, url)
             .apply()
-        Log.i(TAG, "URL API sauvegardee: $url")
+        AppLogger.i(TAG, "URL API sauvegardee: $url")
         // Force rebuild on next call
         retrofit = null
         currentBaseUrl = null
-        Log.d(TAG, "Cache Retrofit invalide")
+        AppLogger.d(TAG, "Cache Retrofit invalide")
     }
 
     private fun buildRetrofit(context: Context, baseUrl: String): Retrofit {
         val isDebug = (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
-        Log.d(TAG, "buildRetrofit: baseUrl=$baseUrl debug=$isDebug")
+        AppLogger.d(TAG, "buildRetrofit: baseUrl=$baseUrl debug=$isDebug")
         val logging = HttpLoggingInterceptor().apply {
             level = if (isDebug) {
                 HttpLoggingInterceptor.Level.BODY

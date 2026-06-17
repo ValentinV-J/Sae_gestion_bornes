@@ -47,4 +47,6 @@
     <string name="settings_saved">URL sauvegardée</string>
     <string name="error_url_empty">L\'URL ne peut pas être vide</string>
     <string name="error_url_format">L\'URL doit commencer par http:// ou https://</string>
+    <string name="debug_logs_title">Logs debug (ecran)</string>
+    <string name="debug_logs_empty">Aucun log pour l\'instant</string>
 </resources>

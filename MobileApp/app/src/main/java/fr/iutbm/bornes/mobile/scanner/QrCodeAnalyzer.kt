@@ -3,11 +3,11 @@ package fr.iutbm.bornes.mobile.scanner
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
-import android.util.Log
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
+import fr.iutbm.bornes.mobile.utils.AppLogger
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -51,11 +51,11 @@ class QrCodeAnalyzer(
 
         scanner.process(image)
             .addOnSuccessListener { barcodes ->
-                Log.v(TAG, "Frame analysee: ${barcodes.size} code(s) detecte(s)")
+                AppLogger.v(TAG, "Frame analysee: ${barcodes.size} code(s) detecte(s)")
                 for (barcode in barcodes) {
                     val raw = barcode.rawValue
                     if (!raw.isNullOrBlank() && processing.compareAndSet(false, true)) {
-                        Log.i(TAG, "QR valide detecte=$raw")
+                        AppLogger.i(TAG, "QR valide detecte=$raw")
                         onQrCodeDetected(raw)
                         break
                     }
@@ -63,7 +63,7 @@ class QrCodeAnalyzer(
             }
             .addOnFailureListener { e ->
                 // Scan failed — next frame will be tried
-                Log.w(TAG, "Echec analyse frame: ${e.message}")
+                AppLogger.w(TAG, "Echec analyse frame: ${e.message}")
             }
             .addOnCompleteListener {
                 imageProxy.close()
@@ -73,6 +73,6 @@ class QrCodeAnalyzer(
     /** Réinitialise le verrou pour permettre un nouveau scan (ex: après erreur). */
     fun reset() {
         processing.set(false)
-        Log.d(TAG, "Verrou scan reinitialise")
+        AppLogger.d(TAG, "Verrou scan reinitialise")
     }
 }

@@ -71,4 +71,32 @@
         android:textColor="@color/text_secondary"
         style="@style/Widget.MaterialComponents.Button.TextButton" />
 
+    <TextView
+        android:id="@+id/tvDebugTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/debug_logs_title"
+        android:textColor="@color/text_secondary"
+        android:textSize="12sp"
+        android:layout_marginTop="20dp"
+        android:layout_marginBottom="6dp" />
+
+    <ScrollView
+        android:id="@+id/svDebugLogs"
+        android:layout_width="match_parent"
+        android:layout_height="140dp"
+        android:fillViewport="true"
+        android:background="@color/card_bg"
+        android:padding="8dp">
+
+        <TextView
+            android:id="@+id/tvDebugLogs"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/debug_logs_empty"
+            android:textColor="@color/text_secondary"
+            android:textSize="11sp"
+            android:fontFamily="monospace" />
+    </ScrollView>
+
 </LinearLayout>

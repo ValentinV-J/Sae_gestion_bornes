@@ -2,10 +2,10 @@ package fr.iutbm.bornes.mobile
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import fr.iutbm.bornes.mobile.api.ApiClient
 import fr.iutbm.bornes.mobile.databinding.ActivityMainBinding
+import fr.iutbm.bornes.mobile.utils.AppLogger
 
 /**
  * Écran d'accueil de l'application.
@@ -23,20 +23,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     private lateinit var binding: ActivityMainBinding
+    private var stopLogObserver: (() -> Unit)? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        Log.d(TAG, "onCreate: ecran principal initialise")
+        bindLogsToScreen()
+        AppLogger.d(TAG, "onCreate: ecran principal initialise")
 
         binding.btnScan.setOnClickListener {
-            Log.d(TAG, "Navigation: ouverture de ScanActivity")
+            AppLogger.d(TAG, "Navigation: ouverture de ScanActivity")
             startActivity(Intent(this, ScanActivity::class.java))
         }
 
         binding.btnSettings.setOnClickListener {
-            Log.d(TAG, "Navigation: ouverture de SettingsActivity")
+            AppLogger.d(TAG, "Navigation: ouverture de SettingsActivity")
             startActivity(Intent(this, SettingsActivity::class.java))
         }
     }
@@ -46,6 +48,23 @@ class MainActivity : AppCompatActivity() {
         // Refresh displayed server URL (may have changed in Settings)
         val currentUrl = ApiClient.getSavedUrl(this)
         binding.tvServerUrl.text = getString(R.string.server_url_label, currentUrl)
-        Log.d(TAG, "onResume: URL serveur affichee=$currentUrl")
+        AppLogger.d(TAG, "onResume: URL serveur affichee=$currentUrl")
+    }
+
+    override fun onDestroy() {
+        stopLogObserver?.invoke()
+        stopLogObserver = null
+        super.onDestroy()
+    }
+
+    private fun bindLogsToScreen() {
+        stopLogObserver = AppLogger.observe { logs ->
+            binding.tvDebugLogs.text = if (logs.isBlank()) {
+                getString(R.string.debug_logs_empty)
+            } else {
+                logs
+            }
+            binding.svDebugLogs.post { binding.svDebugLogs.fullScroll(android.view.View.FOCUS_DOWN) }
+        }
     }
 }
