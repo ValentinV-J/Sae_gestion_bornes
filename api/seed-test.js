@@ -21,11 +21,11 @@ const seedData = async () => {
     await livreur.save();
     console.log(`📦 Livreur de test créé (Badge: ${rfid})`);
 
-    // 2. Créer la borne "Borne Belfort" avec 3 casiers vides
-    await Borne.deleteMany({ nom: 'Borne Belfort' });
+    // 2. Créer la borne "Borne_Belfort" avec 3 casiers vides
+    await Borne.deleteMany({ nom: 'Borne_Belfort' });
     const borne = new Borne({
       identifiant: 'B01',
-      nom: 'Borne Belfort',
+      nom: 'Borne_Belfort',
       adresse: 'IUT Belfort',
       casiers: [
         { numero: 1, taille: 'S', etat_occupation: 'VIDE', etat_materiel: 'OK' },

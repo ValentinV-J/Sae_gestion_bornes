@@ -40,10 +40,10 @@ exports.resetDatabase = async (req, res) => {
       fakeLivreurs.push(l);
     }
 
-    // 4. Recréer la Borne1 obligatoire pour la maquette (renommée Borne Belfort)
+    // 4. Recréer la Borne_Belfort obligatoire pour la maquette
     const borneTest = new Borne({
       identifiant: 'B01',
-      nom: 'Borne Belfort',
+      nom: 'Borne_Belfort',
       adresse: 'IUT Belfort',
       casiers: [
         { numero: 1, taille: 'S', etat_occupation: 'VIDE', etat_materiel: 'OK' },
