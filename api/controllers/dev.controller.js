@@ -70,14 +70,23 @@ exports.resetDatabase = async (req, res) => {
       fakeBornes.push(b);
     }
 
-    // 6. Créer le colis de TEST prêt à être scanné
-    await Colis.create({
-      uuid: 'test-colis-uuid-123',
-      email_client: process.env.EMAIL_USER || 'ton.email@gmail.com',
-      statut: 'ATTENTE_DEPOT',
-      livreur_id: livreurTest._id,
-      borne_id: borneTest._id
-    });
+    // 6. Créer les colis de TEST prêts à être scannés (pour tester la file d'attente / multiples casiers)
+    await Colis.create([
+      {
+        uuid: 'test-colis-uuid-1',
+        email_client: 'xpbot5695@gmail.com',
+        statut: 'ATTENTE_DEPOT',
+        livreur_id: livreurTest._id,
+        borne_id: borneTest._id
+      },
+      {
+        uuid: 'test-colis-uuid-2',
+        email_client: 'xpbot8477@gmail.com',
+        statut: 'ATTENTE_DEPOT',
+        livreur_id: livreurTest._id,
+        borne_id: borneTest._id
+      }
+    ]);
 
     // 7. Générer 50 colis réalistes dans le passé (pour les graphiques)
     const allBornes = [borneTest, ...fakeBornes];

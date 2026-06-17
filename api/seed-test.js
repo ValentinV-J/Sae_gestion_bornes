@@ -36,18 +36,27 @@ const seedData = async () => {
     const savedBorne = await borne.save();
     console.log('🏗️ Borne de test "Borne Belfort" créée avec 3 casiers vides !');
 
-    // 3. Créer un colis virtuel (comme s'il avait été scanné par l'app mobile)
+    // 3. Créer des colis virtuels (comme s'ils avaient été scannés par l'app mobile)
     const Colis = require('./models/Colis');
-    await Colis.deleteMany({});
-    const colis = new Colis({
-      uuid: 'test-colis-uuid-123',
-      email_client: 'xpbot5695@gmail.com', // Adresse de réception des tests
-      statut: 'ATTENTE_DEPOT',
-      livreur_id: livreur._id,
-      borne_id: savedBorne._id
-    });
-    await colis.save();
-    console.log('📦 Colis de test créé et prêt à être déposé !');
+    await Colis.deleteMany({ uuid: { $in: ['test-colis-uuid-1', 'test-colis-uuid-2'] } });
+    
+    await Colis.create([
+      {
+        uuid: 'test-colis-uuid-1',
+        statut: 'ATTENTE_DEPOT',
+        livreur_id: livreur._id,
+        borne_id: borne._id,
+        email_client: 'xpbot5695@gmail.com'
+      },
+      {
+        uuid: 'test-colis-uuid-2',
+        statut: 'ATTENTE_DEPOT',
+        livreur_id: livreur._id,
+        borne_id: borne._id,
+        email_client: 'xpbot8477@gmail.com'
+      }
+    ]);
+    console.log('📦 2 Colis de test "ATTENTE_DEPOT" créés !');
 
     console.log('🎉 Tout est prêt pour le test physique !');
     process.exit(0);
